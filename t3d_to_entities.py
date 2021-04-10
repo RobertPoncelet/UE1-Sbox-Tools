@@ -226,14 +226,13 @@ def getActors(path):
         for line in file:
             if line.startswith("Begin Actor"):
                 skip = False
-                if "Class=" in line:
-                    key = "Name"
-                    value = line.split("Name=")[-1].strip()
-                    currentActor[key] = value
-                if "Name=" in line:
-                    key = "Name"
-                    value = line.split("Name=")[-1].strip()
-                    currentActor[key] = value
+                words = line.split()[2:]
+                for word in words:
+                    keyvalue = word.split("=")
+                    if (len(keyvalue) != 2):
+                        print(line)
+                        assert(false)
+                    currentActor[keyvalue[0]] = keyvalue[1]
                 continue
             if line == "End Actor\n" and not skip:
                 actors.append(currentActor)
@@ -257,8 +256,8 @@ def getActors(path):
                     pos[1] = float(d[2:])
                 elif d[0] == "Z":
                     pos[2] = float(d[2:])
-            if len(dims) is not 3:
-                print("Weird location: " + actors[i]["Location"])
+            #if len(dims) is not 3:
+            #    print("Weird location: " + actors[i]["Location"])
             actors[i]["Location"] = pos
     #print(actors)
     return actors
@@ -289,7 +288,13 @@ def buildLight(actor, ent):
     ent.addProperty("_lightscaleHDR", "1")
     ent.addProperty("_quadratic_attn", "1")
         
-def buildEntity(actor, id):      
+def buildEntity(actor, id):
+    if actor["Class"] == "Brush":
+        return None # We're importing level geometry in a different way
+    elif not "Location" in actor:
+        print("Weird actor: {} {}".format(actor["Class"], actor["Name"]))
+        return None
+    
     ent = HammerClass("entity")
     ent.addProperty("id", str(id))
     if ("Location" in actor 
@@ -299,12 +304,13 @@ def buildEntity(actor, id):
         and "LightRadius" in actor):
         buildLight(actor, ent)
     else:
-        ent.addProperty("classname", )
-        ent.addProperty("targetname", actor["Name"] if "Name" in actor else "info_target")
+        ent.addProperty("classname", actor["Class"] if "Class" in actor else "info_target")
+        if "Name" in actor:
+            ent.addProperty("targetname", actor["Name"])
     
     pos = actor["Location"]
     SCALE = 0.75
-    ent.addProperty("origin", "{} {} {}".format(pos[0]*SCALE, -pos[1]*SCALE, pos[2]*SCALE))
+    ent.addProperty("origin", "{} {} {}".format(pos[1]*SCALE, pos[0]*SCALE, pos[2]*SCALE)) # X and Yare swapped for some reason
     
     editor = HammerClass("editor")
     editor.addProperty("color", "255 128 128")
@@ -372,7 +378,7 @@ def convertMapFile(path):
 glob_path = sys.argv[1] if len(sys.argv) > 1 else "../hp*/maps/*.t3d"
 maps = glob.glob(glob_path, recursive=True)
 
-maps = [maps[0]] # remove for all maps
+#maps = [maps[0]] # remove for all maps
 
 for map_path in maps:
     print("Processing " + map_path)
