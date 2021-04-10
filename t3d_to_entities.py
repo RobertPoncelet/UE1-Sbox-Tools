@@ -310,7 +310,7 @@ def buildEntity(actor, id):
     
     pos = actor["Location"]
     SCALE = 0.75
-    ent.addProperty("origin", "{} {} {}".format(pos[1]*SCALE, pos[0]*SCALE, pos[2]*SCALE)) # X and Yare swapped for some reason
+    ent.addProperty("origin", "{} {} {}".format(pos[1]*SCALE, pos[0]*SCALE, pos[2]*SCALE)) # X and Y are swapped for some reason
     
     editor = HammerClass("editor")
     editor.addProperty("color", "255 128 128")
