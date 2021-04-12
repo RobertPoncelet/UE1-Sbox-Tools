@@ -287,6 +287,15 @@ def buildLight(actor, ent):
     ent.addProperty("_lightHDR", "-1 -1 -1 1")
     ent.addProperty("_lightscaleHDR", "1")
     ent.addProperty("_quadratic_attn", "1")
+
+def buildModel(actor, ent, model):
+    ent.addProperty("classname", "prop_static")
+    ent.addProperty("angles", "-90 0 0") # TODO: rotation
+    ent.addProperty("fademindist", "-1")
+    ent.addProperty("fadescale", "1")
+    ent.addProperty("model", model)
+    ent.addProperty("skin", 0)
+    ent.addProperty("solid", 6)
         
 def buildEntity(actor, id):
     if actor["Class"] == "Brush":
@@ -297,12 +306,17 @@ def buildEntity(actor, id):
     
     ent = HammerClass("entity")
     ent.addProperty("id", str(id))
+    global models
+    modelName = "models\\" + actor["Class"] + ".vmdl"
+    
     if ("Location" in actor 
         and "LightHue" in actor 
         and "LightSaturation" in actor 
         and "LightBrightness" in actor 
         and "LightRadius" in actor):
         buildLight(actor, ent)
+    elif modelName in models:
+        buildModel(actor, ent, modelName)
     else:
         ent.addProperty("classname", actor["Class"] if "Class" in actor else "info_target")
         if "Name" in actor:
@@ -373,10 +387,10 @@ def convertMapFile(path):
         for c in globalClasses:
             c.output(f, 0)
 
-# ==================== START NEW CODE ====================
-
 glob_path = sys.argv[1] if len(sys.argv) > 1 else "../hp*/maps/*.t3d"
 maps = glob.glob(glob_path, recursive=True)
+models = glob.glob("..\\hla_addon_content\\models\\*.vmdl")
+models = ["\\".join(path.split("\\")[2:]) for path in models] # this is necessary because this directory is not the same as the addon content directory
 
 #maps = [maps[0]] # remove for all maps
 
