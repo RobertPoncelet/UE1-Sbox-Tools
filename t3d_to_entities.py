@@ -317,6 +317,7 @@ def buildModel(actor, ent):
     # Hack for chests
     if modelName[:5] == "Chest":
         modelName = modelName[5:] + "Chest"
+        ent.addProperty("scales", "2 2 2")
     modelPath = ("models\\" + modelName + ".vmdl").lower()
     if modelPath not in models:
         return False
@@ -335,6 +336,9 @@ def buildCommon(actor, ent):
         ent.addProperty("origin", locationToOrigin(actor["Location"]))
     if "Rotation" in actor:
         ent.addProperty("angles", rotationToAngles(actor["Rotation"]))
+    if "DrawScale" in actor:
+        scale = actor["DrawScale"]
+        ent.addProperty("scales", "{} {} {}".format(scale, scale, scale))
     if "Name" in actor:
         ent.addProperty("targetname", actor["Name"])
     
