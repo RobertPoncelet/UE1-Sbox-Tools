@@ -4,18 +4,17 @@ import sys
 #import numpy as np
 import math
 import string
-from operator import itemgetter
 
 class HammerClass:
     className = ""
-    properties = []
+    properties = {}
     classes = []
     f = None
     indentLevel = 0
     
     def __init__(self, inName):
         self.className = inName
-        self.properties = []
+        self.properties = {}
         self.classes = []
         self.f = None
         self.indentLevel = 0
@@ -26,7 +25,7 @@ class HammerClass:
         self.f.write(string + "\n")
         
     def addProperty(self, name, value):
-        self.properties.append((name, value))
+        self.properties[name] = value
         
     def addClass(self, hClass):
         self.classes.append(hClass)
@@ -38,7 +37,7 @@ class HammerClass:
         self.writeLine("{")
         self.indentLevel += 1
         for p in self.properties:
-            pString = "\"{0}\" \"{1}\"".format(p[0], p[1])
+            pString = "\"{0}\" \"{1}\"".format(p, self.properties[p])
             self.writeLine(pString)
         for c in self.classes:
             c.output(self.f, self.indentLevel)
@@ -290,7 +289,7 @@ def buildLight(actor, ent):
 
 def buildModel(actor, ent, model):
     ent.addProperty("classname", "prop_static")
-    ent.addProperty("angles", "-90 0 0") # TODO: rotation
+    ent.addProperty("angles", "0 0 0") # TODO: rotation
     ent.addProperty("fademindist", "-1")
     ent.addProperty("fadescale", "1")
     ent.addProperty("model", model)
@@ -373,13 +372,13 @@ def convertMapFile(path):
     buildEntities(path, globalClasses, numExistingEnts)
 
     cameras = HammerClass("cameras")
-    cameras.properties.append(("activecamera", "-1"))
+    cameras.properties["activecamera"] = "-1"
     globalClasses.append(cameras)
 
     cordon = HammerClass("cordon")
-    cordon.properties.append(("mins", "(-1024 -1024 -1024)"))
-    cordon.properties.append(("maxs", "(1024 1024 1024)"))
-    cordon.properties.append(("active", "0"))
+    cordon.properties["mins"] = "(-1024 -1024 -1024)"
+    cordon.properties["maxs"] = "(1024 1024 1024)"
+    cordon.properties["active"] = "0"
     globalClasses.append(cordon)
 
     out_path = path[:-3] + "vmf"
