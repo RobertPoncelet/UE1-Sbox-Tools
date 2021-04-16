@@ -5,6 +5,8 @@ import sys
 import math
 import string
 
+SCALE = 0.75
+
 class HammerClass:
     className = ""
     properties = {}
@@ -243,23 +245,37 @@ def getActors(path):
             key = line[:line.find("=")].strip()
             value = line[line.find("=")+1:].strip()
             currentActor[key] = value
-    for i in range(len(actors)):
-        if "Location" in actors[i]:
-            loc = actors[i]["Location"][1:-1] # Remove brackets
-            dims = loc.split(",")
-            pos = [0.0, 0.0, 0.0]
-            for d in dims:
-                if d[0] == "X":
-                    pos[0] = float(d[2:])
-                elif d[0] == "Y":
-                    pos[1] = float(d[2:])
-                elif d[0] == "Z":
-                    pos[2] = float(d[2:])
-            #if len(dims) is not 3:
-            #    print("Weird location: " + actors[i]["Location"])
-            actors[i]["Location"] = pos
     #print(actors)
     return actors
+
+def locationToOrigin(location):
+    loc = location[1:-1] # Remove brackets
+    dims = loc.split(",")
+    pos = [0.0, 0.0, 0.0]
+    for d in dims:
+        if d[0] == "X":
+            pos[0] = float(d[2:])
+        elif d[0] == "Y":
+            pos[1] = float(d[2:])
+        elif d[0] == "Z":
+            pos[2] = float(d[2:])
+    return "{} {} {}".format(pos[1]*SCALE, pos[0]*SCALE, pos[2]*SCALE) # X and Y are swapped
+
+def rotationToAngles(rotation):
+    rotation = rotation[1:-1] # Remove brackets
+    values = rotation.split(",")
+    values = { v.split("=")[0] : v.split("=")[1] for v in values }
+    angles = [0.0, 0.0, -180.0]
+    factor = -360. / 65536. # Unreal rotations seem to be encoded as 16-bit ints
+    for key in values:
+        if key == "Pitch":
+            angles[0] = float(values[key]) * factor - 180.
+        elif key == "Yaw":
+            angles[2] = float(values[key]) * factor - 180.
+        elif key == "Roll":
+            angles[1] = float(values[key]) * factor - 180.
+    angles = [angles[1], angles[2], angles[0]] # Hammer stores rotations as Y Z X
+    return "{} {} {}".format(angles[0], angles[1], angles[2])
     
 def buildEntities(path, classes, numExistingEnts):
     actors = getActors(path)
@@ -270,7 +286,14 @@ def buildEntities(path, classes, numExistingEnts):
         if newEnt is not None:
             classes.append(newEnt)
 
+# Start entity building functions
+
 def buildLight(actor, ent):
+    if not ("LightHue" in actor 
+        and "LightSaturation" in actor 
+        and "LightBrightness" in actor 
+        and "LightRadius" in actor):
+        return False
     ent.addProperty("classname", "light")
     
     radius = float(actor["LightRadius"]) * 5.0
@@ -286,50 +309,60 @@ def buildLight(actor, ent):
     ent.addProperty("_lightHDR", "-1 -1 -1 1")
     ent.addProperty("_lightscaleHDR", "1")
     ent.addProperty("_quadratic_attn", "1")
+    return True
 
-def buildModel(actor, ent, model):
+def buildModel(actor, ent):
+    global models
+    modelName = actor["Class"]
+    # Hack for chests
+    if modelName[:5] == "Chest":
+        modelName = modelName[5:] + "Chest"
+    modelPath = ("models\\" + modelName + ".vmdl").lower()
+    if modelPath not in models:
+        return False
     ent.addProperty("classname", "prop_static")
-    ent.addProperty("angles", "0 0 0") # TODO: rotation
     ent.addProperty("fademindist", "-1")
     ent.addProperty("fadescale", "1")
-    ent.addProperty("model", model)
+    ent.addProperty("model", modelPath)
     ent.addProperty("skin", 0)
     ent.addProperty("solid", 6)
-        
-def buildEntity(actor, id):
-    if actor["Class"] == "Brush":
-        return None # We're importing level geometry in a different way
-    elif not "Location" in actor:
-        print("Weird actor: {} {}".format(actor["Class"], actor["Name"]))
-        return None
+    return True
+
+def buildCommon(actor, ent):
+    ent.addProperty("classname", actor["Class"] if "Class" in actor else "info_target")
     
-    ent = HammerClass("entity")
-    ent.addProperty("id", str(id))
-    global models
-    modelName = "models\\" + actor["Class"] + ".vmdl"
-    
-    if ("Location" in actor 
-        and "LightHue" in actor 
-        and "LightSaturation" in actor 
-        and "LightBrightness" in actor 
-        and "LightRadius" in actor):
-        buildLight(actor, ent)
-    elif modelName in models:
-        buildModel(actor, ent, modelName)
-    else:
-        ent.addProperty("classname", actor["Class"] if "Class" in actor else "info_target")
-        if "Name" in actor:
-            ent.addProperty("targetname", actor["Name"])
-    
-    pos = actor["Location"]
-    SCALE = 0.75
-    ent.addProperty("origin", "{} {} {}".format(pos[1]*SCALE, pos[0]*SCALE, pos[2]*SCALE)) # X and Y are swapped for some reason
+    if "Location" in actor:
+        ent.addProperty("origin", locationToOrigin(actor["Location"]))
+    if "Rotation" in actor:
+        ent.addProperty("angles", rotationToAngles(actor["Rotation"]))
+    if "Name" in actor:
+        ent.addProperty("targetname", actor["Name"])
     
     editor = HammerClass("editor")
     editor.addProperty("color", "255 128 128")
     editor.addProperty("visgroupshown", "1")
     editor.addProperty("visgroupautoshown", "1")
     ent.addClass(editor)
+    return False # Entity isn't finished yet
+        
+def buildEntity(actor, id):
+    if actor["Class"] == "Brush":
+        return None # We're importing level geometry in a different way
+    elif not "Location" in actor:
+        print("Weird actor: {} {}".format(actor["Class"], actor["Name"]))
+        #return None
+    
+    ent = HammerClass("entity")
+    ent.addProperty("id", str(id))
+
+    # We now have the entity to create and the actor to create it from
+    # We try each of these functions on the actor until we find a match
+    # The entity is then confirmed as the type decided from that function
+    buildFuncs = [buildCommon, buildLight, buildModel]
+    for buildFunc in buildFuncs:
+        if buildFunc(actor, ent):
+            break
+    
     return ent
 
 def convertMapFile(path):
@@ -389,7 +422,7 @@ def convertMapFile(path):
 glob_path = sys.argv[1] if len(sys.argv) > 1 else "../hp*/maps/*.t3d"
 maps = glob.glob(glob_path, recursive=True)
 models = glob.glob("..\\hla_addon_content\\models\\*.vmdl")
-models = ["\\".join(path.split("\\")[2:]) for path in models] # this is necessary because this directory is not the same as the addon content directory
+models = ["\\".join(path.split("\\")[2:]).lower() for path in models] # this is necessary because this directory is not the same as the addon content directory
 
 #maps = [maps[0]] # remove for all maps
 
