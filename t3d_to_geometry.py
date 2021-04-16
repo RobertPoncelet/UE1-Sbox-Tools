@@ -4,6 +4,7 @@ import os
 #GAME_PATHS = ["..\\hp1", "..\\hp2"]
 GAME_PATHS = ["..\\hp2"]
 DO_CONVERSION = True
+OVERWRITE = False
 
 def convertMapFile(game, path):
     cwd = os.getcwd()
@@ -51,5 +52,9 @@ for game in GAME_PATHS:
     #maps = [maps[0]] # remove for all maps
 
     for map_path in maps:
+        out_map_path = map_path[:-3] + "obj"
+        if not OVERWRITE and os.path.isfile(out_map_path):
+            print("Not overwriting " + out_map_path)
+            continue
         print("Processing " + map_path)
         convertMapFile(game, map_path)
