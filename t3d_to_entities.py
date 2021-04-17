@@ -289,26 +289,29 @@ def buildEntities(path, classes, numExistingEnts):
 # Start entity building functions
 
 def buildLight(actor, ent):
-    if not ("LightHue" in actor 
-        and "LightSaturation" in actor 
-        and "LightBrightness" in actor 
-        and "LightRadius" in actor):
+    if not actor["Class"] == "Light":
         return False
-    ent.addProperty("classname", "light")
+    ent.addProperty("classname", "light_omni")
+
+    radius = float(actor["LightRadius"]) if "LightRadius" in actor else 256.
+    radius *= 8. # Hacky estimate
+    ent.addProperty("range", radius)
+
+    brightness = float(actor["LightBrightness"]) if "LightBrightness" in actor else 64.
+    brightness /= 256.
+    ent.addProperty("brightness", brightness * 10.) # Also a hacky estimate
     
-    radius = float(actor["LightRadius"]) * 5.0
-    ent.addProperty("_fifty_percent_distance", radius/2)
-    ent.addProperty("_zero_percent_distance", radius)
-    
-    h = float(actor["LightHue"]) / 256.0
-    s = float(actor["LightSaturation"]) / 128.0 # Otherwise ends up desaturated
-    v = float(actor["LightBrightness"]) / 256.0
-    colour = colorsys.hsv_to_rgb(h, s, 0.75)
+    h = float(actor["LightHue"]) if "LightHue" in actor else 0.
+    h /= 256.
+    s = float(actor["LightSaturation"]) if "LightSaturation" in actor else 255.
+    s = 1. - (s / 256.)
+    v = 0.75 #brightness
+    colour = colorsys.hsv_to_rgb(h, s, v)
     colour = tuple(int(c*256.0) for c in colour)
-    ent.addProperty("_light", "{} {} {} {}".format(colour[0], colour[1], colour[2], actor["LightBrightness"]))
-    ent.addProperty("_lightHDR", "-1 -1 -1 1")
-    ent.addProperty("_lightscaleHDR", "1")
-    ent.addProperty("_quadratic_attn", "1")
+    ent.addProperty("color", "{} {} {}".format(colour[0], colour[1], colour[2]))
+
+    ent.addProperty("castshadows", 2) # Baked shadows only
+    ent.addProperty("renderspecular", 0) # None of that fancy PBR in 2002
     return True
 
 def buildModel(actor, ent):
