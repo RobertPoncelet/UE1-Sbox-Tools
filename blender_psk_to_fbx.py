@@ -4,8 +4,7 @@ import os
 import io_import_scene_unreal_psa_psk_280 as psk
 
 ROOT_PATH = "F:/Google Drive/hp_resources"
-#GAMES = ["hp1", "hp2"]
-GAMES = ["hp2"]
+GAMES = ["hp1", "hp2"]
 
 for game in GAMES:
     glob_path = os.path.join(ROOT_PATH, game, "raw_models_textures", "**", "*.psk")

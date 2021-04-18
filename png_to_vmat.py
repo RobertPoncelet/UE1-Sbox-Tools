@@ -69,8 +69,6 @@ def do_line(line, textures):
         fill = get_tex_by_type(textures, "trans")
     return unbrocket(line, fill) if fill is not None else None
 
-print("TODO: make this not hard-coded for HP2")
-
 matpaths = {} # Maps material path to a list of its textures
 texpaths = glob.glob(os.path.join(texroot, "*.png"), recursive=True)
 #texpaths = [texpaths[0]] # remove to do all textures

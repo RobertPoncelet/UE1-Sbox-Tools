@@ -1,8 +1,7 @@
 import glob
 import os
 
-#GAME_PATHS = ["..\\hp1", "..\\hp2"]
-GAME_PATHS = ["..\\hp2"]
+GAME_PATHS = ["..\\hp1", "..\\hp2"]
 DO_CONVERSION = True
 OVERWRITE = False
 
