@@ -30,6 +30,10 @@ for game in GAMES:
         # This bit's a bit hacky
         subfolder = psk_path.split(os.path.sep)[-2]
         out_path = os.path.join(ROOT_PATH, game, "fbx", subfolder, model_name)
+        
+        if not os.path.isdir(os.path.dirname(out_path)):
+            os.makedirs(os.path.dirname(out_path))
+        
         bpy.ops.export_scene.fbx("EXEC_DEFAULT", filepath=out_path)
         
         bpy.ops.object.delete(use_global=True, confirm=False)
