@@ -294,12 +294,12 @@ def buildLight(actor, ent):
     ent.addProperty("classname", "light_omni")
 
     radius = float(actor["LightRadius"]) if "LightRadius" in actor else 256.
-    radius *= 8. # Hacky estimate
+    radius *= 32. # Hacky estimate
     ent.addProperty("range", radius)
 
     brightness = float(actor["LightBrightness"]) if "LightBrightness" in actor else 64.
     brightness /= 256.
-    ent.addProperty("brightness", brightness * 10.) # Also a hacky estimate
+    ent.addProperty("brightness", brightness * 4.) # Also a hacky estimate
     
     h = float(actor["LightHue"]) if "LightHue" in actor else 0.
     h /= 256.
