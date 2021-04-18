@@ -2,7 +2,7 @@ import os, glob
 
 objroot = "..\\hla_addon_content" # this is a bit messy but fuck it
 vmatroot = "..\\hla_addon_content"
-overwrite = True
+overwrite = False
 
 def brocketed(s):
     if s[:4] == "<!--" or not ("<" in s and ">" in s):
@@ -59,9 +59,11 @@ for mdl in mdlpaths:
     obj = mdlpaths[mdl]
     mdlname = os.path.basename(mdl)[:-5]
 
-    mats = ["sk" + mdlname + "Tex" + str(i) for i in range(10)]
+    # A bit hacky
+    prefix = "sk" if os.path.basename(obj).startswith("sk") else ""
+    mats = [prefix + mdlname + "Tex" + str(i) for i in range(10)]
 
-    vmat_glob = os.path.join(vmatroot, "*sk" + mdlname + "Tex*.vmat")
+    vmat_glob = os.path.join(vmatroot, "*" + prefix + mdlname + "Tex*.vmat")
     vmats = glob.glob(vmat_glob)
     #vmats = glob.glob(os.path.join(vmatroot, "*" + mdlname + "*.vmat"), recursive=True)
     vmats = [os.path.basename(path) for path in vmats]
