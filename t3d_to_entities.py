@@ -260,7 +260,7 @@ def locationToOrigin(location):
             pos[2] = float(d[2:])
     return "{} {} {}".format(pos[1]*SCALE, pos[0]*SCALE, pos[2]*SCALE) # X and Y are swapped
 
-def rotationToAngles(rotation):
+def rotationToAngles(rotation, yawOffset=0.):
     rotation = rotation[1:-1] # Remove brackets
     values = rotation.split(",")
     values = { v.split("=")[0] : v.split("=")[1] for v in values }
@@ -270,7 +270,7 @@ def rotationToAngles(rotation):
         if key == "Pitch":
             angles[0] = float(values[key]) * factor - 180.
         elif key == "Yaw":
-            angles[2] = float(values[key]) * factor - 180.
+            angles[2] = float(values[key]) * factor - 180. + yawOffset
         elif key == "Roll":
             angles[1] = float(values[key]) * factor - 180.
     angles = [angles[1], angles[2], angles[0]] # Hammer stores rotations as Y Z X
@@ -316,11 +316,15 @@ def buildLight(actor, ent):
     ent.addProperty("baked_light_indexing", 0)
 
     if actor["Class"] == "Spotlight":
-        ent.addProperty("classname", "light_spot")
+        ent.addProperty("classname", "light_spot_") # Change the name to avoid the importer trying to convert from Source 1
         cone = float(actor["LightCone"]) if "LightCone" in actor else 128.
         angle = (cone / 256.) * 90.
         ent.addProperty("innerconeangle", angle/2.)
         ent.addProperty("outerconeangle", angle)
+        # UE1 and Source 2 have different forward axes
+        if "Rotation" in actor:
+            ent.addProperty("angles", rotationToAngles(actor["Rotation"], -90.))
+            
     return True
 
 def buildModel(actor, ent):
