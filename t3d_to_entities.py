@@ -1,11 +1,10 @@
 import colorsys
 import glob
+import os.path
 import sys
-#import numpy as np
-import math
-import string
 
 SCALE = 0.75
+OVERWRITE = True
 
 class HammerClass:
     className = ""
@@ -289,7 +288,9 @@ def buildEntities(path, classes, numExistingEnts):
 # Start entity building functions
 
 def buildLight(actor, ent):
-    if not actor["Class"] == "Light":
+    if not (actor["Class"] == "Light"
+            or actor["Class"] == "Spotlight"
+            or actor["Class"] == "Torch_light"):
         return False
     ent.addProperty("classname", "light_omni")
 
@@ -312,6 +313,14 @@ def buildLight(actor, ent):
 
     ent.addProperty("castshadows", 2) # Baked shadows only
     ent.addProperty("renderspecular", 0) # None of that fancy PBR in 2002
+    ent.addProperty("baked_light_indexing", 0)
+
+    if actor["Class"] == "Spotlight":
+        ent.addProperty("classname", "light_spot")
+        cone = float(actor["LightCone"]) if "LightCone" in actor else 128.
+        angle = (cone / 256.) * 90.
+        ent.addProperty("innerconeangle", angle/2.)
+        ent.addProperty("outerconeangle", angle)
     return True
 
 def buildModel(actor, ent):
@@ -330,6 +339,12 @@ def buildModel(actor, ent):
     ent.addProperty("model", modelPath)
     ent.addProperty("skin", 0)
     ent.addProperty("solid", 6)
+    return True
+
+def buildPlayerStart(actor, ent):
+    if actor["Class"] != "PlayerStart":
+        return False
+    ent.addProperty("classname", "info_player_start")
     return True
 
 def buildCommon(actor, ent):
@@ -365,7 +380,7 @@ def buildEntity(actor, id):
     # We now have the entity to create and the actor to create it from
     # We try each of these functions on the actor until we find a match
     # The entity is then confirmed as the type decided from that function
-    buildFuncs = [buildCommon, buildLight, buildModel]
+    buildFuncs = [buildCommon, buildLight, buildModel, buildPlayerStart]
     for buildFunc in buildFuncs:
         if buildFunc(actor, ent):
             break
@@ -434,5 +449,9 @@ models = ["\\".join(path.split("\\")[2:]).lower() for path in models] # this is 
 #maps = [maps[0]] # remove for all maps
 
 for map_path in maps:
+    out_map_path = map_path[:-3] + "vmf"
+    if not OVERWRITE and os.path.isfile(out_map_path):
+        print("Not overwriting " + out_map_path)
+        continue
     print("Processing " + map_path)
     convertMapFile(map_path)
