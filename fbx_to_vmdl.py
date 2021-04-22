@@ -1,8 +1,7 @@
-import os, glob
+import os, glob, constants
 
 objroot = "..\\hla_addon_content" # this is a bit messy but fuck it
 vmatroot = "..\\hla_addon_content"
-overwrite = False
 
 def brocketed(s):
     if s[:4] == "<!--" or not ("<" in s and ">" in s):
@@ -25,7 +24,7 @@ def do_line(line, mdlname, obj, matdict):
     elif key == "mesh_name":
         fill = mdlname
     elif key == "scale":
-        fill = "0.75"
+        fill = constants.SCALE
     elif key == "material_remap_list":
         fill = ""
         for mat in matdict:
@@ -51,7 +50,7 @@ for objpath in objpaths:
     mdlpaths[mdl] = objpath
 
 for mdl in mdlpaths:
-    if not overwrite and os.path.isfile(mdl):
+    if not constants.OVERWRITE and os.path.isfile(mdl):
         print("Not overwriting " + mdl)
         continue
     print("Writing " + mdl)

@@ -1,13 +1,11 @@
 import bpy
+import constants
 import glob
 import os
 import io_import_scene_unreal_psa_psk_280 as psk
 
-ROOT_PATH = "F:/Google Drive/hp_resources"
-GAMES = ["hp1", "hp2"]
-
-for game in GAMES:
-    glob_path = os.path.join(ROOT_PATH, game, "raw_models_textures", "**", "*.psk")
+for game in constants.GAMES:
+    glob_path = os.path.join(constants.ROOT_PATH, game, "raw_models_textures", "**", "*.psk")
     psks = glob.glob(glob_path, recursive=True)
 #    psks = psks[:10] # remove for all psks
     for psk_path in psks:
@@ -28,7 +26,7 @@ for game in GAMES:
         model_name += ".fbx"
         # This bit's a bit hacky
         subfolder = psk_path.split(os.path.sep)[-2]
-        out_path = os.path.join(ROOT_PATH, game, "fbx", subfolder, model_name)
+        out_path = os.path.join(constants.ROOT_PATH, game, "fbx", subfolder, model_name)
         
         if not os.path.isdir(os.path.dirname(out_path)):
             os.makedirs(os.path.dirname(out_path))

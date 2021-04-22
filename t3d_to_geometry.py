@@ -1,9 +1,8 @@
+import constants
 import glob
 import os
 
-GAME_PATHS = ["..\\hp1", "..\\hp2"]
 DO_CONVERSION = True
-OVERWRITE = False
 
 def convertMapFile(game, path):
     cwd = os.getcwd()
@@ -11,7 +10,8 @@ def convertMapFile(game, path):
     if DO_CONVERSION:
         # Use t3d_to_obj.exe to convert the map geometry
         os.chdir("..\\t3d_to_obj")
-        cmd = "use_me_pls_python.bat {} {}".format(path, os.path.join(game, "textures_png_flattened_names"))
+        T3D_SCALE = 40.65040650406504065040
+        cmd = "t3d_to_obj.exe --movers --post-scale {} {} {}".format(T3D_SCALE * constants.scale, path, os.path.join(game, "textures_png_flattened_names"))
         print(cmd)
         os.system(cmd)
 
@@ -44,7 +44,7 @@ def convertMapFile(game, path):
 
     os.chdir(cwd)
 
-for game in GAME_PATHS:
+for game in constants.GAME_PATHS:
     glob_path = os.path.join(game, "maps", "*.t3d")
     maps = glob.glob(glob_path, recursive=True)
 
@@ -52,7 +52,7 @@ for game in GAME_PATHS:
 
     for map_path in maps:
         out_map_path = map_path[:-3] + "obj"
-        if not OVERWRITE and os.path.isfile(out_map_path):
+        if not constants.OVERWRITE and os.path.isfile(out_map_path):
             print("Not overwriting " + out_map_path)
             continue
         print("Processing " + map_path)

@@ -1,10 +1,8 @@
 import colorsys
+import constants
 import glob
 import os.path
 import sys
-
-SCALE = 0.75
-OVERWRITE = True
 
 class HammerClass:
     className = ""
@@ -258,7 +256,7 @@ def locationToOrigin(location):
             pos[1] = float(d[2:])
         elif d[0] == "Z":
             pos[2] = float(d[2:])
-    return "{} {} {}".format(pos[1]*SCALE, pos[0]*SCALE, pos[2]*SCALE) # X and Y are swapped
+    return "{} {} {}".format(pos[1]*constants.SCALE, pos[0]*constants.SCALE, pos[2]*constants.SCALE) # X and Y are swapped
 
 def rotationToAngles(rotation, yawOffset=0.):
     rotation = rotation[1:-1] # Remove brackets
@@ -454,7 +452,7 @@ models = ["\\".join(path.split("\\")[2:]).lower() for path in models] # this is 
 
 for map_path in maps:
     out_map_path = map_path[:-3] + "vmf"
-    if not OVERWRITE and os.path.isfile(out_map_path):
+    if not constants.OVERWRITE and os.path.isfile(out_map_path):
         print("Not overwriting " + out_map_path)
         continue
     print("Processing " + map_path)
