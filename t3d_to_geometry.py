@@ -11,7 +11,8 @@ def convertMapFile(game, path):
         # Use t3d_to_obj.exe to convert the map geometry
         os.chdir("..\\t3d_to_obj")
         T3D_SCALE = 40.65040650406504065040
-        cmd = "t3d_to_obj.exe --movers --post-scale {} {} {}".format(T3D_SCALE * constants.scale, path, os.path.join(game, "textures_png_flattened_names"))
+        cmd = "t3d_to_obj.exe --movers --post-scale {} {} {}"
+        cmd = cmd.format(T3D_SCALE * constants.SCALE, path, os.path.join("..", game, "textures_png_flattened_names"))
         print(cmd)
         os.system(cmd)
 
@@ -44,8 +45,8 @@ def convertMapFile(game, path):
 
     os.chdir(cwd)
 
-for game in constants.GAME_PATHS:
-    glob_path = os.path.join(game, "maps", "*.t3d")
+for game in constants.GAMES:
+    glob_path = os.path.join("..", game, "maps", "*.t3d")
     maps = glob.glob(glob_path, recursive=True)
 
     #maps = [maps[0]] # remove for all maps
