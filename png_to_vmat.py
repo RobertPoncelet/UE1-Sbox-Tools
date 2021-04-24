@@ -1,3 +1,5 @@
+# Be careful when executing that it doesn't accidentally make a bunch of
+# unnecessary materials for the transparency textures!
 import os, glob, constants
 from PIL import Image
 
@@ -23,6 +25,21 @@ def single_colour_or_tex(tex):
             nums = [str(float((e[0] + e[1]) / 2) / 255.) for e in ext]
             return "[" + " ".join(nums) + "]"
     return tex
+
+def is_opaque(tex):
+    tex = os.path.join("..", "hla_addon_content", tex) # Correct it
+    im = Image.open(tex)
+    if len(im.mode) <= 3:
+        return True
+    alpha = im.split()[3]
+    size = im.width * im.height
+    blank_fraction = float(alpha.histogram()[0]) / float(size)
+    opaque = blank_fraction < 0.05
+    if not opaque:
+        trans_path = tex[:-4] + "_trans.png"
+        if not os.path.exists(trans_path):
+            alpha.save(trans_path)
+    return opaque
 
 def brocketed(s):
     if not ("<" in s and ">" in s):
@@ -64,11 +81,15 @@ def do_line(line, textures):
         fill = get_tex_by_type(textures, "normal")
     elif key == "tex_trans":
         fill = get_tex_by_type(textures, "trans")
+    elif key == "shader":
+        fill = "vr_simple.vfx" if is_opaque(textures[0]) else "vr_complex.vfx"
+    elif key == "alpha_test":
+        fill = "0" if is_opaque(textures[0]) else "1"
     return unbrocket(line, fill) if fill is not None else None
 
 matpaths = {} # Maps material path to a list of its textures
 texpaths = glob.glob(os.path.join(constants.HLA_TEXTURES_ROOT, "*.png"), recursive=True)
-#texpaths = [texpaths[0]] # remove to do all textures
+#texpaths = texpaths[:10] # remove to do all textures
 for texpath in texpaths:
     texpath = os.path.basename(texpath)
     texpath = os.path.join("textures_png_flattened_names", texpath)
@@ -78,12 +99,13 @@ for texpath in texpaths:
     mat += ".vmat"
     mat = os.path.join("..", "hla_addon_content", mat)
     if mat not in matpaths:
-        matpaths[mat] = [texpath]
+        trans_path = texpath[:-4] + "_trans.png"
+        matpaths[mat] = [texpath, trans_path]
     else:
         matpaths[mat].append(texpath)
 
 for mat in matpaths:
-    if not overwrite and os.path.isfile(mat):
+    if not constants.OVERWRITE and os.path.isfile(mat):
         print("Not overwriting " + mat)
         continue
     print("Writing " + mat)
