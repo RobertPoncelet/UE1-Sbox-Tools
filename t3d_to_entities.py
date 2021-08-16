@@ -344,7 +344,7 @@ def buildModel(actor, ent):
     return True
 
 def buildPlayerStart(actor, ent):
-    if actor["Class"] != "PlayerStart":
+    if actor["Class"] != "Harry":
         return False
     ent.addProperty("classname", "info_player_start")
     return True
@@ -368,10 +368,17 @@ def buildCommon(actor, ent):
     editor.addProperty("visgroupautoshown", "1")
     ent.addClass(editor)
     return False # Entity isn't finished yet
+
+def isBuildable(actor):
+    if actor["Class"] == "Brush":
+        return False # We're importing level geometry in a different way
+    if actor["Class"] == "PlayerStart":
+        return False
+    return True        
         
 def buildEntity(actor, id):
-    if actor["Class"] == "Brush":
-        return None # We're importing level geometry in a different way
+    if not isBuildable(actor):
+        return None
     elif not "Location" in actor:
         print("Weird actor: {} {}".format(actor["Class"], actor["Name"]))
         #return None
