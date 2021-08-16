@@ -12,7 +12,7 @@ for game in GAMES:
     glob_path = os.path.join(ROOT_PATH, game, "raw_models_textures", "**", "*.psk")
     #psks = glob.glob(glob_path, recursive=True)
     #psks = psks[:1] # remove for all psks
-    psks = ["F:\\Google Drive\\hp_resources\\hp2\\raw_models_textures\\HPModels\\SavePointFloatBookMesh.psk"]
+    psks = ["F:\\Google Drive\\hp_resources\\hp2\\raw_models_textures\\HPModels\\skwoodchestmesh.psk"]
     for psk_path in psks:
         print("Converting", psk_path)
         psk.pskimport(psk_path, context=bpy.context, bDontInvertRoot=False)
