@@ -285,7 +285,16 @@ def buildEntities(path, classes, numExistingEnts):
 
 # Start entity building functions
 
+def buildSprite(actor, ent):
+    if not actor["Class"] == "candleflame":
+        return False
+    ent.addProperty("classname", "env_sprite")
+    ent.addProperty("model", "hp_fx_general_candlef.vmat")
+    return True
+
 def buildLight(actor, ent):
+    if buildSprite(actor, ent):
+        return True
     if not (actor["Class"] == "Light"
             or actor["Class"] == "Spotlight"
             or actor["Class"] == "Torch_light"):
@@ -325,17 +334,36 @@ def buildLight(actor, ent):
             
     return True
 
+def buildChest(actor, ent):
+    if not actor["Class"].startswith("Chest"):
+        return False
+    ent.addProperty("classname", "tp_item_chest")
+    ent.addProperty("scales", "2 2 2")
+    numBeans = 0
+    for key in actor:
+        if key.startswith("EjectedObjects") and actor[key] == "Class'HGame.Jellybean'":
+            numBeans += 1
+    ent.addProperty("numbeans", numBeans)
+    return True
+
+def buildBean(actor, ent):
+    if not actor["Class"].endswith("Bean"):
+        return False
+    ent.addProperty("classname", "tp_item_bean")
+    return True
+
 def buildModel(actor, ent):
+    if buildChest(actor, ent):
+        return True
+    if buildBean(actor, ent):
+        return True
     global models
     modelName = actor["Class"]
-    # Hack for chests
-    if modelName[:5] == "Chest":
-        modelName = modelName[5:] + "Chest"
-        ent.addProperty("scales", "2 2 2")
     modelPath = ("models\\" + modelName + ".vmdl").lower()
     if modelPath not in models:
         return False
     ent.addProperty("classname", "prop_static")
+    ent.addProperty("scales", "1.5 1.5 1.5")
     ent.addProperty("fademindist", "-1")
     ent.addProperty("fadescale", "1")
     ent.addProperty("model", modelPath)
@@ -389,7 +417,7 @@ def buildEntity(actor, id):
     # We now have the entity to create and the actor to create it from
     # We try each of these functions on the actor until we find a match
     # The entity is then confirmed as the type decided from that function
-    buildFuncs = [buildCommon, buildLight, buildModel, buildPlayerStart]
+    buildFuncs = [buildCommon, buildLight, buildPlayerStart, buildModel]
     for buildFunc in buildFuncs:
         if buildFunc(actor, ent):
             break
