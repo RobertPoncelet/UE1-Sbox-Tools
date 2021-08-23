@@ -353,19 +353,32 @@ def buildBean(actor, ent):
         return False
     ent.addProperty("classname", "tp_item_bean")
     return True
+    
+def buildMover(actor, ent):
+    if actor["Class"] != "Mover":
+        return False
+    ent.addProperty("classname", "tp_door")
+    for key in actor:
+        if key == "SavedPos" or key == "SavedRot": # These aren't used AFAIK
+            continue
+        if "Rot" in key:
+            outKey = key.lower().replace("(", "_").replace(")", "")
+            ent.addProperty(outKey, rotationToAngles(actor[key]))
+        elif "Pos" in key and key != "PostScale": # hacky check lol
+            outKey = key.lower().replace("(", "_").replace(")", "")
+            ent.addProperty(outKey, locationToOrigin(actor[key]))
 
 def buildModel(actor, ent):
-    if buildChest(actor, ent):
+    if buildChest(actor, ent) or buildBean(actor, ent) or buildMover(actor, ent):
         return True
-    if buildBean(actor, ent):
-        return True
+        
+    # Otherwise, must be a generic model
     global models
     modelName = actor["Class"]
     modelPath = ("models\\" + modelName + ".vmdl").lower()
     if modelPath not in models:
         return False
     ent.addProperty("classname", "prop_static")
-    ent.addProperty("scales", "1.5 1.5 1.5")
     ent.addProperty("fademindist", "-1")
     ent.addProperty("fadescale", "1")
     ent.addProperty("model", modelPath)
@@ -392,6 +405,8 @@ def buildCommon(actor, ent):
     if "DrawScale" in actor:
         scale = actor["DrawScale"]
         ent.addProperty("scales", "{} {} {}".format(scale, scale, scale))
+    else:
+        ent.addProperty("scales", "1.5 1.5 1.5") # Weird default but ok
     if "Name" in actor:
         ent.addProperty("targetname", actor["Name"])
     
