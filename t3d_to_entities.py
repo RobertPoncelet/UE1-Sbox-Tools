@@ -261,17 +261,19 @@ def locationToOrigin(location):
 def rotationToAngles(rotation, yawOffset=0.):
     rotation = rotation[1:-1] # Remove brackets
     values = rotation.split(",")
-    values = { v.split("=")[0] : v.split("=")[1] for v in values }
-    angles = [0.0, 0.0, -180.0]
+    values = { v.split("=")[0] : float(v.split("=")[1]) for v in values }
+    angles = [0., 0., 0.]
     factor = -360. / 65536. # Unreal rotations seem to be encoded as 16-bit ints
     for key in values:
         if key == "Pitch":
-            angles[0] = float(values[key]) * factor - 180.
+            angles[0] = values[key] * factor * -1. - 180.
         elif key == "Yaw":
-            angles[2] = float(values[key]) * factor - 180. + yawOffset
+            if values[key] < -32768: # haaaaaaaack
+                yawOffset = -yawOffset
+            angles[1] = values[key] * factor - 180. + yawOffset
         elif key == "Roll":
-            angles[1] = float(values[key]) * factor - 180.
-    angles = [angles[1], angles[2], angles[0]] # Hammer stores rotations as Y Z X
+            angles[2] = values[key] * factor - 180.
+    #angles = [angles[1], angles[2], angles[0]] # Hammer stores rotations as Y Z X
     return "{} {} {}".format(angles[0], angles[1], angles[2])
     
 def buildEntities(path, classes, numExistingEnts):
@@ -347,7 +349,7 @@ def buildChest(actor, ent):
     return True
 
 def buildBean(actor, ent):
-    if not actor["Class"].endswith("Bean"):
+    if not actor["Class"].lower().endswith("bean"):
         return False
     ent.addProperty("classname", "tp_item_bean")
     return True
@@ -369,6 +371,9 @@ def buildModel(actor, ent):
     ent.addProperty("model", modelPath)
     ent.addProperty("skin", 0)
     ent.addProperty("solid", 6)
+    if actor["Class"] == "LightRay":
+        ent.addProperty("disableshadows", 1)
+        ent.addProperty("renderamt", 128)
     return True
 
 def buildPlayerStart(actor, ent):
