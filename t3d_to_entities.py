@@ -29,7 +29,10 @@ class HammerClass:
     def addClass(self, hClass):
         self.classes.append(hClass)
         
-    def output(self, inFile, inIndentLevel):
+    #def addOutput(self, outputName, target, targetInput, param, delay, maxTimes):
+     #   if not any(c.className == for c in self.classes)
+        
+    def write(self, inFile, inIndentLevel):
         self.f = inFile
         self.indentLevel = inIndentLevel
         self.writeLine(self.className)
@@ -39,7 +42,7 @@ class HammerClass:
             pString = "\"{0}\" \"{1}\"".format(p, self.properties[p])
             self.writeLine(pString)
         for c in self.classes:
-            c.output(self.f, self.indentLevel)
+            c.write(self.f, self.indentLevel)
         self.indentLevel -= 1
         self.writeLine("}")
         
@@ -340,10 +343,9 @@ def buildChest(actor, ent):
     if not actor["Class"].startswith("Chest"):
         return False
     ent.addProperty("classname", "tp_item_chest")
-    ent.addProperty("scales", "2 2 2")
     numBeans = 0
     for key in actor:
-        if key.startswith("EjectedObjects") and actor[key] == "Class'HGame.Jellybean'":
+        if key.startswith("EjectedObjects") and "bean" in actor[key].lower:
             numBeans += 1
     ent.addProperty("numbeans", numBeans)
     return True
@@ -352,6 +354,17 @@ def buildBean(actor, ent):
     if not actor["Class"].lower().endswith("bean"):
         return False
     ent.addProperty("classname", "tp_item_bean")
+    ent.addProperty("usephysics", "0")
+    ent.addProperty("scales", "1 1 1")
+    return True
+    
+def buildWizardCard(actor, ent):
+    if not actor["Class"].startswith("WC"):
+        return False
+    ent.addProperty("classname", "tp_item_wizardcard")
+    ent.addProperty("usephysics", "0")
+    ent.addProperty("scales", "1 1 1")
+    ent.addProperty("wizardname", actor["Class"][2:])
     return True
     
 def buildMover(actor, ent):
@@ -359,18 +372,93 @@ def buildMover(actor, ent):
         return False
     ent.addProperty("classname", "tp_door")
     for key in actor:
-        if key == "SavedPos" or key == "SavedRot": # These aren't used AFAIK
+        if key == "SavedPos" or key == "SavedRot" # These aren't used AFAIK
+        or key == "Rotation" or key == "PostScale":
             continue
         if "Rot" in key:
             outKey = key.lower().replace("(", "_").replace(")", "")
             ent.addProperty(outKey, rotationToAngles(actor[key]))
-        elif "Pos" in key and key != "PostScale": # hacky check lol
+        elif "Pos" in key:
             outKey = key.lower().replace("(", "_").replace(")", "")
             ent.addProperty(outKey, locationToOrigin(actor[key]))
+    return True
+            
+def buildDiffindoBarrier(actor, ent):
+    if actor["Class"] != "DiffindoVines" or actor["Class"] != "DiffindoRoots":
+        return False
+    ent.addProperty("classname", "tp_diffindo_barrier")
+    modelName = actor["Class"]
+    modelPath = ("models\\" + modelName + ".vmdl").lower()
+    ent.addProperty("model", modelPath)
+    return True
+    
+def buildSpongifyPad(actor, ent):
+    if actor["Class"] != "SpongifyPad":
+        return False
+    ent.addProperty("classname", "tp_spongify_pad")
+    if "Event" in actor:
+        event = actor["Event"]
+        global actors
+        for other in actors:
+            if other["Class"] == "SpongifyTarget" and other["Tag"] == event and "Name" in other:
+                ent.addProperty("target", other["Name"])
+    if "fTimeToHitTarget" in actor:
+        ent.addProperty("duration", actor["fTimeToHitTarget"])
+    return True
+    
+def buildSpongifyTarget(actor, ent):
+    if actor["Class"] != "SpongifyTarget":
+        return False
+    ent.addProperty("classname", "info_target")
+    return True
+    
+def buildSkyCamera(actor, ent):
+    if actor["Class"] != "SkyZoneInfo":
+        return False
+    ent.addProperty("classname", "sky_camera")
+    return True
+    
+def buildPlayerStart(actor, ent):
+    if actor["Class"] != "Harry":
+        return False
+    ent.addProperty("classname", "info_player_start")
+    return True
+    
+def buildSecret(actor, ent):
+    if actor["Class"] != "SecretAreaMarker":
+        return False
+    ent.addProperty("classname", "tp_secret_area")
+    radius = actor["CollisionRadius"] if "CollisionRadius" in actor else 64.
+    height = actor["CollisionHeight"] if "CollisionHeight" in actor else 64.
+    ent.addProperty("radius", radius)
+    ent.addProperty("height", height)
+    return True
+    
+def buildSpellTrigger(actor, ent):
+    if actor["Class"] != "spellTrigger":
+        return False
+    ent.addProperty("classname", "tp_spelltrigger")
+    spell = actor["eVulnerableToSpell"] if "eVulnerableToSpell" in actor else "Alohamora"
+    ent.addProperty("spelltype", spell)
+    return True
 
 def buildModel(actor, ent):
-    if buildChest(actor, ent) or buildBean(actor, ent) or buildMover(actor, ent):
-        return True
+    modelEntityBuilders = [
+        buildChest, 
+        buildBean,
+        buildWizardCard,
+        buildMover, 
+        buildDiffindoBarrier, 
+        buildSpongifyPad, 
+        buildSpongifyTarget,
+        buildSkyCamera,
+        buildPlayerStart,
+        buildSecret,
+        buildSpellTrigger,
+    ]
+    for func in modelEntityBuilders:
+        if func(actor, ent):
+            return True
         
     # Otherwise, must be a generic model
     global models
@@ -387,12 +475,6 @@ def buildModel(actor, ent):
     if actor["Class"] == "LightRay":
         ent.addProperty("disableshadows", 1)
         ent.addProperty("renderamt", 128)
-    return True
-
-def buildPlayerStart(actor, ent):
-    if actor["Class"] != "Harry":
-        return False
-    ent.addProperty("classname", "info_player_start")
     return True
 
 def buildCommon(actor, ent):
@@ -420,7 +502,18 @@ def buildCommon(actor, ent):
 def isBuildable(actor):
     if actor["Class"] == "Brush":
         return False # We're importing level geometry in a different way
-    if actor["Class"] == "PlayerStart":
+    invalidClasses = [
+        "PlayerStart", 
+        "ZoneInfo", 
+        "HarryToGoyleTrigger", 
+        "BlockAll", 
+        "PopupTrigger",
+        "SpellLessonInterpolationPoint",
+        "CutMark",
+        "CutScene",
+        "CutCameraPos",
+    ]
+    if actor["Class"] in invalidClasses:
         return False
     return True        
         
@@ -437,7 +530,7 @@ def buildEntity(actor, id):
     # We now have the entity to create and the actor to create it from
     # We try each of these functions on the actor until we find a match
     # The entity is then confirmed as the type decided from that function
-    buildFuncs = [buildCommon, buildLight, buildPlayerStart, buildModel]
+    buildFuncs = [buildCommon, buildLight, buildModel]
     for buildFunc in buildFuncs:
         if buildFunc(actor, ent):
             break
@@ -496,7 +589,7 @@ def convertMapFile(path):
     out_path = path[:-3] + "vmf"
     with open(out_path, "w") as f:
         for c in globalClasses:
-            c.output(f, 0)
+            c.write(f, 0)
 
 glob_path = sys.argv[1] if len(sys.argv) > 1 else "../hp*/maps/*.t3d"
 maps = glob.glob(glob_path, recursive=True)
