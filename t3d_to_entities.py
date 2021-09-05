@@ -29,8 +29,15 @@ class HammerClass:
     def addClass(self, hClass):
         self.classes.append(hClass)
         
-    #def addOutput(self, outputName, target, targetInput, param, delay, maxTimes):
-     #   if not any(c.className == for c in self.classes)
+    def addOutput(self, outputName, target, targetInput, param, delay, maxTimes):
+        if not any(c.className == "connections" for c in self.classes):
+            self.addClass(HammerClass("connections"))
+        for c in self.classes:
+            if c.className == "connections":
+                args = ["" if s is None else s for s in [target, targetInput, param, delay, maxTimes]]
+                value = ",".join([str(s) for s in args])
+                c.addProperty(outputName, value)
+                break
         
     def write(self, inFile, inIndentLevel):
         self.f = inFile
@@ -280,6 +287,7 @@ def rotationToAngles(rotation, yawOffset=0.):
     return "{} {} {}".format(angles[0], angles[1], angles[2])
     
 def buildEntities(path, classes, numExistingEnts):
+    global actors 
     actors = getActors(path)
     id = numExistingEnts
     for actor in actors:
@@ -344,10 +352,14 @@ def buildChest(actor, ent):
         return False
     ent.addProperty("classname", "tp_item_chest")
     numBeans = 0
+    wizardcard = None
     for key in actor:
-        if key.startswith("EjectedObjects") and "bean" in actor[key].lower:
+        if key.startswith("EjectedObjects") and "bean" in actor[key].lower():
             numBeans += 1
+        if key.startswith("EjectedObjects") and "WC" in actor[key]:
+            wizardcard = actor[key][2:]
     ent.addProperty("numbeans", numBeans)
+    if wizardcard: ent.addProperty("wizardcard", wizardcard)
     return True
 
 def buildBean(actor, ent):
@@ -372,8 +384,8 @@ def buildMover(actor, ent):
         return False
     ent.addProperty("classname", "tp_door")
     for key in actor:
-        if key == "SavedPos" or key == "SavedRot" # These aren't used AFAIK
-        or key == "Rotation" or key == "PostScale":
+        if (key == "SavedPos" or key == "SavedRot" # These aren't used AFAIK
+            or key == "Rotation" or key == "PostScale"):
             continue
         if "Rot" in key:
             outKey = key.lower().replace("(", "_").replace(")", "")
@@ -438,8 +450,21 @@ def buildSpellTrigger(actor, ent):
     if actor["Class"] != "spellTrigger":
         return False
     ent.addProperty("classname", "tp_spelltrigger")
-    spell = actor["eVulnerableToSpell"] if "eVulnerableToSpell" in actor else "Alohamora"
+    spell = actor["eVulnerableToSpell"][6:] if "eVulnerableToSpell" in actor else "Alohamora"
     ent.addProperty("spelltype", spell)
+    onceOnly = actor["bTriggerOnceOnly"] if "bTriggerOnceOnly" in actor else False
+    if "Event" in actor:
+        event = actor["Event"]
+        global actors
+        for other in actors:
+            if other["Class"] == "Counter" and other["Tag"] == event and "Name" in other:
+                ent.addOutput("OnTrigger", other["Name"], "Add", 1, 0, 1 if onceOnly else -1)
+    return True
+    
+def buildCounter(actor, ent):
+    if actor["Class"] != "Counter":
+        return False
+    ent.addProperty("classname", "math_counter")
     return True
 
 def buildModel(actor, ent):
@@ -455,6 +480,7 @@ def buildModel(actor, ent):
         buildPlayerStart,
         buildSecret,
         buildSpellTrigger,
+        buildCounter
     ]
     for func in modelEntityBuilders:
         if func(actor, ent):
