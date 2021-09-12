@@ -266,7 +266,7 @@ def locationToOrigin(location):
             pos[1] = float(d[2:])
         elif d[0] == "Z":
             pos[2] = float(d[2:])
-    return "{} {} {}".format(pos[1]*constants.SCALE, pos[0]*constants.SCALE, pos[2]*constants.SCALE) # X and Y are swapped
+    return "{} {} {}".format(pos[0]*constants.SCALE, -pos[1]*constants.SCALE, pos[2]*constants.SCALE) # Y is flipped
 
 def rotationToAngles(rotation, yawOffset=0.):
     rotation = rotation[1:-1] # Remove brackets

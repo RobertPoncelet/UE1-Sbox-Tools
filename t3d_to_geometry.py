@@ -40,6 +40,12 @@ def convertMapFile(game, path):
                 mtl_name = line.split()[1]
                 mtl_name = "_".join(mtl_name.split("."))
                 f.write("usemtl " + mtl_name + "\n")
+            elif line.startswith("v "):
+                nums = line.split()
+                x = float(nums[1])
+                z = nums[2]
+                y = float(nums[3])
+                f.write("v {} {} {}\n".format(y, z, -x))
             else:
                 f.write(line)
 
