@@ -278,8 +278,6 @@ def rotationToAngles(rotation, yawOffset=0.):
         if key == "Pitch":
             angles[0] = values[key] * factor * -1. - 180.
         elif key == "Yaw":
-            if values[key] < -32768: # haaaaaaaack
-                yawOffset = -yawOffset
             angles[1] = values[key] * factor - 180. + yawOffset
         elif key == "Roll":
             angles[2] = values[key] * factor - 180.
@@ -360,6 +358,12 @@ def buildChest(actor, ent):
             wizardcard = actor[key][2:]
     ent.addProperty("numbeans", numBeans)
     if wizardcard: ent.addProperty("wizardcard", wizardcard)
+    
+    # For some reason chests have a different rotation??
+    if "Rotation" in actor:
+        ent.addProperty("angles", rotationToAngles(actor["Rotation"]))
+    else:
+        ent.addProperty("angles", "0 180 0")
     return True
 
 def buildBean(actor, ent):
@@ -382,7 +386,7 @@ def buildWizardCard(actor, ent):
 def buildMover(actor, ent):
     if actor["Class"] != "Mover":
         return False
-    ent.addProperty("classname", "tp_door")
+    ent.addProperty("classname", "tp_ent_door")
     for key in actor:
         if (key == "SavedPos" or key == "SavedRot" # These aren't used AFAIK
             or key == "Rotation" or key == "PostScale"):
@@ -396,9 +400,9 @@ def buildMover(actor, ent):
     return True
             
 def buildDiffindoBarrier(actor, ent):
-    if actor["Class"] != "DiffindoVines" or actor["Class"] != "DiffindoRoots":
+    if actor["Class"] != "DiffindoVines" and actor["Class"] != "DiffindoRoots":
         return False
-    ent.addProperty("classname", "tp_diffindo_barrier")
+    ent.addProperty("classname", "tp_ent_diffindobarrier")
     modelName = actor["Class"]
     modelPath = ("models\\" + modelName + ".vmdl").lower()
     ent.addProperty("model", modelPath)
@@ -407,7 +411,7 @@ def buildDiffindoBarrier(actor, ent):
 def buildSpongifyPad(actor, ent):
     if actor["Class"] != "SpongifyPad":
         return False
-    ent.addProperty("classname", "tp_spongify_pad")
+    ent.addProperty("classname", "tp_ent_spongifypad")
     if "Event" in actor:
         event = actor["Event"]
         global actors
@@ -422,6 +426,30 @@ def buildSpongifyTarget(actor, ent):
     if actor["Class"] != "SpongifyTarget":
         return False
     ent.addProperty("classname", "info_target")
+    return True
+
+def buildGnome(actor, ent):
+    if actor["Class"] != "GNOME":
+        return False
+    ent.addProperty("classname", "tp_npc_gnome")
+    return True
+    
+def buildHorklumps(actor, ent):
+    if actor["Class"] != "Horklumps":
+        return False
+    ent.addProperty("classname", "tp_npc_horklumps")
+    return True
+    
+def buildLumosGargoyle(actor, ent):
+    if actor["Class"] != "gargoyle":
+        return False
+    ent.addProperty("classname", "tp_npc_gargoyle")
+    return True
+    
+def buildMixingCauldron(actor, ent):
+    if actor["Class"] != "SkyZoneInfo":
+        return False
+    ent.addProperty("classname", "tp_ent_mixingcauldron")
     return True
     
 def buildSkyCamera(actor, ent):
@@ -439,7 +467,7 @@ def buildPlayerStart(actor, ent):
 def buildSecret(actor, ent):
     if actor["Class"] != "SecretAreaMarker":
         return False
-    ent.addProperty("classname", "tp_secret_area")
+    ent.addProperty("classname", "tp_ent_secretarea")
     radius = actor["CollisionRadius"] if "CollisionRadius" in actor else 64.
     height = actor["CollisionHeight"] if "CollisionHeight" in actor else 64.
     ent.addProperty("radius", radius)
@@ -466,6 +494,42 @@ def buildCounter(actor, ent):
         return False
     ent.addProperty("classname", "math_counter")
     return True
+    
+def buildNpc(actor, ent):
+    name = actor["Class"]
+    isNpcName = (name.startswith("G") and (name[1:].startswith("Fem")
+        or name[1:].startswith("Male") or name[1:].startswith("OldMale")))
+    if not isNpcName:
+        return False
+    ent.addProperty("classname", "tp_npc_generic")
+    ent.addProperty("model", "models\\gen_fem_1.vmdl")
+    return True
+    
+def buildTemplate(actor, ent):
+    if actor["Class"] != "SpawnThingy" and actor["Class"] != "InvisibleSpawn":
+        return False
+    ent.addProperty("classname", "point_template")
+    return True
+    
+def buildSound(actor, ent):
+    if actor["Class"] != "Sound_FX":
+        return False
+    ent.addProperty("classname", "ambient_generic")
+    return True
+    
+def buildRelay(actor, ent):
+    if actor["Class"] != "Dispatcher":
+        return False
+    ent.addProperty("classname", "logic_relay")
+    return True
+    
+def buildSoundscape(actor, ent):
+    if actor["Class"] != "AmbientSound":
+        return False
+    ent.addProperty("classname", "env_soundscape")
+    soundscape = actor["AmbientSound"] if "AmbientSound" in actor else "ERROR"
+    ent.addProperty("soundscape", soundscape)
+    return True
 
 def buildModel(actor, ent):
     modelEntityBuilders = [
@@ -476,11 +540,19 @@ def buildModel(actor, ent):
         buildDiffindoBarrier, 
         buildSpongifyPad, 
         buildSpongifyTarget,
+        buildGnome,
+        buildHorklumps,
+        buildLumosGargoyle,
+        buildMixingCauldron,
         buildSkyCamera,
         buildPlayerStart,
         buildSecret,
         buildSpellTrigger,
-        buildCounter
+        buildCounter,
+        buildNpc,
+        buildTemplate,
+        buildSound,
+        buildRelay,
     ]
     for func in modelEntityBuilders:
         if func(actor, ent):
@@ -508,15 +580,22 @@ def buildCommon(actor, ent):
     
     if "Location" in actor:
         ent.addProperty("origin", locationToOrigin(actor["Location"]))
+        
     if "Rotation" in actor:
-        ent.addProperty("angles", rotationToAngles(actor["Rotation"]))
+        ent.addProperty("angles", rotationToAngles(actor["Rotation"], -90.))
+    else:
+        ent.addProperty("angles", "0 90 0")
+        
     if "DrawScale" in actor:
         scale = actor["DrawScale"]
         ent.addProperty("scales", "{} {} {}".format(scale, scale, scale))
     else:
         ent.addProperty("scales", "1.5 1.5 1.5") # Weird default but ok
+        
     if "Name" in actor:
         ent.addProperty("targetname", actor["Name"])
+    else:
+        print("No name for actor!")
     
     editor = HammerClass("editor")
     editor.addProperty("color", "255 128 128")
@@ -526,9 +605,8 @@ def buildCommon(actor, ent):
     return False # Entity isn't finished yet
 
 def isBuildable(actor):
-    if actor["Class"] == "Brush":
-        return False # We're importing level geometry in a different way
     invalidClasses = [
+        "Brush", # We're importing level geometry in a different way
         "PlayerStart", 
         "ZoneInfo", 
         "HarryToGoyleTrigger", 
@@ -537,7 +615,26 @@ def isBuildable(actor):
         "SpellLessonInterpolationPoint",
         "CutMark",
         "CutScene",
+        "SmartStart",
+        "TriggerChangeLevel",
+        "navShortcut",
+        "SavePoint",
+        "Speciallit",
+        "BlockPlayer",
+        
+        # The following class names *may* be implemented at some point
+        "Darklight",
+        "CutScene",
         "CutCameraPos",
+        "PatrolPoint",
+        "Trigger",
+        "NewMusicTrigger",
+        "CreatureGenerator",
+        "InterpolationPoint",
+        "LumosSparkles",
+        "LumosTrigger",
+        "TargetPoint", # particularly this one, used for gnome throw targeting
+        "Despawner", # and this one, used for despawning gnomes when thrown
     ]
     if actor["Class"] in invalidClasses:
         return False
@@ -562,6 +659,10 @@ def buildEntity(actor, id):
             break
     
     return ent
+    
+def addExtraEntity(ent):
+    global globalClasses
+    globalClasses.append(ent)
 
 def convertMapFile(path):
     #node = hou.pwd()
