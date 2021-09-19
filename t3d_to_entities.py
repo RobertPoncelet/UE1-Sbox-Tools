@@ -419,7 +419,7 @@ def buildSpongifyPad(actor, ent):
             if other["Class"] == "SpongifyTarget" and other["Tag"] == event and "Name" in other:
                 ent.addProperty("target", other["Name"])
     if "fTimeToHitTarget" in actor:
-        ent.addProperty("duration", actor["fTimeToHitTarget"])
+        ent.addProperty("jumpduration", actor["fTimeToHitTarget"])
     return True
     
 def buildSpongifyTarget(actor, ent):
