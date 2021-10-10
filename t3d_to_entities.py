@@ -1,3 +1,4 @@
+from collections import namedtuple
 import colorsys
 import constants
 import glob
@@ -294,7 +295,18 @@ def buildEntities(path, classes, numExistingEnts):
         if newEnt is not None:
             classes.append(newEnt)
 
+#========================================
 # Start entity building functions
+#========================================
+
+# Maps Actor classname (not Entity classname) to the default input for that Entity
+EntityIO = namedtuple("EntityIO", "output input param delay maxTimes")
+defaultIO = {
+    "spellTrigger" : EntityIO("OnTrigger", "Trigger", None, 0, None), # maxTimes should be deduced from the Actor
+    "Mover" : EntityIO("OnFullyOpen", "Toggle", None, 0, -1),
+    "Counter" : EntityIO("OnHitMax", "Add", 1, 0, -1),
+    "Trigger" : EntityIO("OnStartTouch", "Enable", None, 0, -1)
+}
 
 def buildSprite(actor, ent):
     if not actor["Class"] == "candleflame":
@@ -384,7 +396,7 @@ def buildWizardCard(actor, ent):
     return True
     
 def buildMover(actor, ent):
-    if actor["Class"] != "Mover":
+    if actor["Class"] != "Mover" and actor["Class"] != "ElevatorMover":
         return False
     ent.addProperty("classname", "tp_ent_door")
     for key in actor:
@@ -400,7 +412,9 @@ def buildMover(actor, ent):
     return True
             
 def buildDiffindoBarrier(actor, ent):
-    if actor["Class"] != "DiffindoVines" and actor["Class"] != "DiffindoRoots":
+    if (actor["Class"] != "DiffindoVines" 
+        and actor["Class"] != "DiffindoRoots"
+        and actor["Class"] != "DiffindoWeb"):
         return False
     ent.addProperty("classname", "tp_ent_diffindobarrier")
     modelName = actor["Class"]
@@ -462,6 +476,7 @@ def buildPlayerStart(actor, ent):
     if actor["Class"] != "Harry":
         return False
     ent.addProperty("classname", "info_player_start")
+    ent.addProperty("scales", "1 1 1") # Don't scale the player!
     return True
     
 def buildSecret(actor, ent):
@@ -485,8 +500,9 @@ def buildSpellTrigger(actor, ent):
         event = actor["Event"]
         global actors
         for other in actors:
-            if other["Class"] == "Counter" and other["Tag"] == event and "Name" in other:
-                ent.addOutput("OnTrigger", other["Name"], "Add", 1, 0, 1 if onceOnly else -1)
+            if other["Class"] in defaultIO and "Name" in other and "Tag" in other and other["Tag"] == event:
+                ioInfo = defaultIO[other["Class"]]
+                ent.addOutput("OnTrigger", other["Name"], ioInfo.input, ioInfo.param, ioInfo.delay, 1 if onceOnly else -1)
     return True
     
 def buildCounter(actor, ent):
@@ -569,7 +585,7 @@ def buildModel(actor, ent):
     ent.addProperty("fadescale", "1")
     ent.addProperty("model", modelPath)
     ent.addProperty("skin", 0)
-    ent.addProperty("solid", 6)
+    ent.addProperty("solid", 3)
     if actor["Class"] == "LightRay":
         ent.addProperty("disableshadows", 1)
         ent.addProperty("renderamt", 128)
