@@ -403,10 +403,10 @@ def buildMover(actor, ent):
         if (key == "SavedPos" or key == "SavedRot" # These aren't used AFAIK
             or key == "Rotation" or key == "PostScale"):
             continue
-        if "Rot" in key:
+        if key == "BaseRot" or "KeyRot" in key:
             outKey = key.lower().replace("(", "_").replace(")", "")
             ent.addProperty(outKey, rotationToAngles(actor[key]))
-        elif "Pos" in key:
+        if key == "BasePos" or "KeyPos" in key:
             outKey = key.lower().replace("(", "_").replace(")", "")
             ent.addProperty(outKey, locationToOrigin(actor[key]))
     return True
