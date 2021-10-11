@@ -494,6 +494,7 @@ def buildSpellTrigger(actor, ent):
         return False
     ent.addProperty("classname", "tp_spelltrigger")
     spell = actor["eVulnerableToSpell"][6:] if "eVulnerableToSpell" in actor else "Alohamora"
+    if spell == "Alohomora" : spell = "Alohamora" # Fix dumb "AlohOmora" typo in the original maps lol
     ent.addProperty("spelltype", spell)
     onceOnly = actor["bTriggerOnceOnly"] if "bTriggerOnceOnly" in actor else False
     if "Event" in actor:
