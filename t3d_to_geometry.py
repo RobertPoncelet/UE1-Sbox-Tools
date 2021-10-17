@@ -82,7 +82,10 @@ def writeMovers(map_path):
                 mover_name = line[index:].strip()
                 
             if is_mover:
-                mover_contents.append(line)
+                # Don't apply any transformations - we'll do that later
+                sline = line.strip()
+                if not (sline.startswith("Location=") or sline.startswith("Rotation=")):
+                    mover_contents.append(line)
                 
             if line.startswith("End Actor") and is_mover:
                 writeMoverMapFile(map_path, mover_name, mover_contents)
