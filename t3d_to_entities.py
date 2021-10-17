@@ -289,8 +289,10 @@ def buildEntities(path, classes, numExistingEnts):
     global actors 
     actors = getActors(path)
     id = numExistingEnts
+    mapname = os.path.splitext(os.path.basename(path))[0]
     for actor in actors:
         id += 1
+        actor["_mapname"] = mapname
         newEnt = buildEntity(actor, id)
         if newEnt is not None:
             classes.append(newEnt)
@@ -399,6 +401,11 @@ def buildMover(actor, ent):
     if actor["Class"] != "Mover" and actor["Class"] != "ElevatorMover":
         return False
     ent.addProperty("classname", "tp_ent_door")
+    ent.addProperty("model", "models/movers/" + actor["_mapname"] + "_" + actor["Name"] + ".vmdl")
+    if "Rotation" in actor:
+        ent.addProperty("angles", rotationToAngles(actor["Rotation"], 0.))
+    else:
+        ent.addProperty("angles", "0 0 0")
     for key in actor:
         if (key == "SavedPos" or key == "SavedRot" # These aren't used AFAIK
             or key == "Rotation" or key == "PostScale"):
@@ -601,7 +608,7 @@ def buildCommon(actor, ent):
     if "Rotation" in actor:
         ent.addProperty("angles", rotationToAngles(actor["Rotation"], -90.))
     else:
-        ent.addProperty("angles", "0 90 0")
+        ent.addProperty("angles", "0 -90 0")
         
     if "DrawScale" in actor:
         scale = actor["DrawScale"]
