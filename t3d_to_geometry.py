@@ -2,20 +2,21 @@ import constants
 import glob
 import os
 
-DO_CONVERSION = True
+DO_MAP_CONVERSION = True
+DO_MOVER_CONVERSION = True
 
 def convertMapFile(game, path):
     cwd = os.getcwd()
     
-    if DO_CONVERSION:
-        # Use t3d_to_obj.exe to convert the map geometry
-        os.chdir("..\\t3d_to_obj")
-        T3D_SCALE = 40.65040650406504065040
-        is_mover = os.path.split(os.path.dirname(path))[-1] == "movers"
-        movers_arg = "--movers" if is_mover else ""
-        cmd = "t3d_to_obj.exe {} --post-scale {} {} {}"
-        cmd = cmd.format(movers_arg, T3D_SCALE * constants.SCALE, path, os.path.join("..", game, "textures_png_flattened_names"))
-        print(cmd)
+    # Use t3d_to_obj.exe to convert the map geometry
+    os.chdir("..\\t3d_to_obj")
+    T3D_SCALE = 40.65040650406504065040
+    is_mover = os.path.split(os.path.dirname(path))[-1] == "movers"
+    movers_arg = "--movers" if is_mover else ""
+    cmd = "t3d_to_obj.exe {} --post-scale {} {} {}"
+    cmd = cmd.format(movers_arg, T3D_SCALE * constants.SCALE, path, os.path.join("..", game, "textures_png_flattened_names"))
+    print(cmd)
+    if (not is_mover and DO_MAP_CONVERSION) or (is_mover and DO_MOVER_CONVERSION):
         os.system(cmd)
 
     # Hammer doesn't like the material names to have too many dots, so we need to fix that
@@ -92,14 +93,13 @@ def writeMovers(map_path):
 for game in constants.GAMES:
     glob_path = os.path.join("..", game, "maps", "*.t3d")
     maps = glob.glob(glob_path, recursive=True)
-
-    #maps = [maps[0]] # remove for all maps
     
     for map_path in maps:
         writeMovers(map_path)
         
     # Now include all the generated movers
-    maps = glob.glob(glob_path, recursive=True)
+    glob_path = os.path.join("..", game, "maps", "movers", "*.t3d")
+    maps += glob.glob(glob_path, recursive=True)
 
     for map_path in maps:
         out_map_path = map_path[:-3] + "obj"
