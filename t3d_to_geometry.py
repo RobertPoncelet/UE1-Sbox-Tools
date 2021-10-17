@@ -6,7 +6,6 @@ import multiprocessing as mp
 DO_MAP_CONVERSION = True
 DO_MOVER_WRITE = True
 DO_MOVER_CONVERSION = True
-NUM_CORES = 16
 
 def convertMapFile(game, path):
     out_map_path = path[:-3] + "obj"
@@ -109,7 +108,7 @@ if __name__ == "__main__":
         maps = glob.glob(glob_path, recursive=True)
         
         if DO_MOVER_WRITE:
-            with mp.Pool(processes=NUM_CORES) as pool:
+            with mp.Pool(processes=constants.NUM_CORES) as pool:
                 pool.map(writeMovers, maps)
             
         # Now include all the generated movers
@@ -117,6 +116,6 @@ if __name__ == "__main__":
         maps += glob.glob(glob_path, recursive=True)
 
         args = [(game, map_path) for map_path in maps]
-        with mp.Pool(processes=NUM_CORES) as pool:
+        with mp.Pool(processes=constants.NUM_CORES) as pool:
             pool.starmap(convertMapFile, args)
         

@@ -4,6 +4,7 @@ import constants
 import glob
 import os.path
 import sys
+import multiprocessing as mp
 
 class HammerClass:
     className = ""
@@ -406,6 +407,7 @@ def buildMover(actor, ent):
         ent.addProperty("angles", rotationToAngles(actor["Rotation"], 0.))
     else:
         ent.addProperty("angles", "0 0 0")
+    ent.addProperty("scales", "1 1 1") # Don't scale
     for key in actor:
         if (key == "SavedPos" or key == "SavedRot" # These aren't used AFAIK
             or key == "Rotation" or key == "PostScale"):
@@ -583,10 +585,9 @@ def buildModel(actor, ent):
             return True
         
     # Otherwise, must be a generic model
-    global models
     modelName = actor["Class"]
     modelPath = ("models\\" + modelName + ".vmdl").lower()
-    if modelPath not in models:
+    if modelPath not in getModels():
         return False
     ent.addProperty("classname", "prop_static")
     ent.addProperty("fademindist", "-1")
@@ -688,9 +689,20 @@ def addExtraEntity(ent):
     global globalClasses
     globalClasses.append(ent)
 
+models = None
+def getModels():
+    global models
+    if not models:
+        models = glob.glob("..\\hla_addon_content\\models\\*.vmdl")
+        models = ["\\".join(path.split("\\")[2:]).lower() for path in models] # this is necessary because this directory is not the same as the addon content directory
+    return models
+
 def convertMapFile(path):
-    #node = hou.pwd()
-    #geo = node.geometry()
+    out_path = path[:-3] + "vmf"
+    if not constants.OVERWRITE and os.path.isfile(out_path):
+        print("Not overwriting " + out_map_path)
+        return
+    print("Processing " + path)
 
     globalClasses = []
 
@@ -737,22 +749,15 @@ def convertMapFile(path):
     cordon.properties["active"] = "0"
     globalClasses.append(cordon)
 
-    out_path = path[:-3] + "vmf"
     with open(out_path, "w") as f:
         for c in globalClasses:
             c.write(f, 0)
 
-glob_path = sys.argv[1] if len(sys.argv) > 1 else "../hp*/maps/*.t3d"
-maps = glob.glob(glob_path, recursive=True)
-models = glob.glob("..\\hla_addon_content\\models\\*.vmdl")
-models = ["\\".join(path.split("\\")[2:]).lower() for path in models] # this is necessary because this directory is not the same as the addon content directory
+if __name__ == "__main__":
+    glob_path = sys.argv[1] if len(sys.argv) > 1 else "../hp*/maps/*.t3d"
+    maps = glob.glob(glob_path, recursive=True)
 
-#maps = [maps[0]] # remove for all maps
+    #maps = [maps[0]] # remove for all maps
 
-for map_path in maps:
-    out_map_path = map_path[:-3] + "vmf"
-    if not constants.OVERWRITE and os.path.isfile(out_map_path):
-        print("Not overwriting " + out_map_path)
-        continue
-    print("Processing " + map_path)
-    convertMapFile(map_path)
+    with mp.Pool(processes=constants.NUM_CORES) as pool:
+        pool.map(convertMapFile, maps)
