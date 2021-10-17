@@ -1,11 +1,21 @@
 import constants
 import glob
 import os
+import multiprocessing as mp
 
 DO_MAP_CONVERSION = True
+DO_MOVER_WRITE = True
 DO_MOVER_CONVERSION = True
+NUM_CORES = 16
 
 def convertMapFile(game, path):
+    out_map_path = path[:-3] + "obj"
+    if not constants.OVERWRITE and os.path.isfile(out_map_path):
+        print("Not overwriting " + out_map_path)
+        return
+    else:
+        print("Processing " + path)
+
     cwd = os.getcwd()
     
     # Use t3d_to_obj.exe to convert the map geometry
@@ -93,21 +103,20 @@ def writeMovers(map_path):
                 mover_contents = []
                 mover_name = None
 
-for game in constants.GAMES:
-    glob_path = os.path.join("..", game, "maps", "*.t3d")
-    maps = glob.glob(glob_path, recursive=True)
-    
-    for map_path in maps:
-        writeMovers(map_path)
+if __name__ == "__main__":
+    for game in constants.GAMES:
+        glob_path = os.path.join("..", game, "maps", "*.t3d")
+        maps = glob.glob(glob_path, recursive=True)
         
-    # Now include all the generated movers
-    glob_path = os.path.join("..", game, "maps", "movers", "*.t3d")
-    maps += glob.glob(glob_path, recursive=True)
+        if DO_MOVER_WRITE:
+            with mp.Pool(processes=NUM_CORES) as pool:
+                pool.map(writeMovers, maps)
+            
+        # Now include all the generated movers
+        glob_path = os.path.join("..", game, "maps", "movers", "*.t3d")
+        maps += glob.glob(glob_path, recursive=True)
 
-    for map_path in maps:
-        out_map_path = map_path[:-3] + "obj"
-        if not constants.OVERWRITE and os.path.isfile(out_map_path):
-            print("Not overwriting " + out_map_path)
-            continue
-        print("Processing " + map_path)
-        convertMapFile(game, map_path)
+        args = [(game, map_path) for map_path in maps]
+        with mp.Pool(processes=NUM_CORES) as pool:
+            pool.starmap(convertMapFile, args)
+        
