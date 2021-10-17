@@ -24,7 +24,7 @@ def do_line(line, mdlname, obj, matdict):
     elif key == "mesh_name":
         fill = mdlname
     elif key == "scale":
-        fill = constants.SCALE
+        fill = 1.
     elif key == "material_remap_list":
         fill = ""
         for mat in matdict:

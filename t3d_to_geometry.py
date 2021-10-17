@@ -2,6 +2,7 @@ import constants
 import glob
 import os
 import multiprocessing as mp
+from shutil import copyfile
 
 DO_MAP_CONVERSION = True
 DO_MOVER_WRITE = True
@@ -28,40 +29,46 @@ def convertMapFile(game, path):
     if (not is_mover and DO_MAP_CONVERSION) or (is_mover and DO_MOVER_CONVERSION):
         os.system(cmd)
 
-    # Hammer doesn't like the material names to have too many dots, so we need to fix that
-    os.chdir(os.path.dirname(path))
-    filename = os.path.basename(path)
-    mapname = os.path.splitext(filename)[0]
-    
-    with open(mapname + ".mtl", "r+") as f:
-        lines = f.readlines()
-        f.seek(0)
-        for line in lines:
-            if line[:6] == "newmtl" and len(line.split()) > 1:
-                mtl_name = line.split()[1]
-                mtl_name = "_".join(mtl_name.split("."))
-                f.write("newmtl " + mtl_name + "\n")
-            else:
-                f.write(line)
+        # Hammer doesn't like the material names to have too many dots, so we need to fix that
+        os.chdir(os.path.dirname(path))
+        filename = os.path.basename(path)
+        mapname = os.path.splitext(filename)[0]
+        
+        with open(mapname + ".mtl", "r+") as f:
+            lines = f.readlines()
+            f.seek(0)
+            for line in lines:
+                if line[:6] == "newmtl" and len(line.split()) > 1:
+                    mtl_name = line.split()[1]
+                    mtl_name = "_".join(mtl_name.split("."))
+                    f.write("newmtl " + mtl_name + "\n")
+                else:
+                    f.write(line)
 
-    with open(mapname + ".obj", "r+") as f:
-        lines = f.readlines()
-        f.seek(0)
-        for line in lines:
-            if line[:6] == "usemtl" and len(line.split()) > 1:
-                mtl_name = line.split()[1]
-                mtl_name = "_".join(mtl_name.split("."))
-                f.write("usemtl " + mtl_name + "\n")
-            elif line.startswith("v "):
-                nums = line.split()
-                x = float(nums[1])
-                z = nums[2]
-                y = float(nums[3])
-                f.write("v {} {} {}\n".format(y, z, -x))
-            else:
-                f.write(line)
+        with open(mapname + ".obj", "r+") as f:
+            lines = f.readlines()
+            f.seek(0)
+            for line in lines:
+                if line[:6] == "usemtl" and len(line.split()) > 1:
+                    mtl_name = line.split()[1]
+                    mtl_name = "_".join(mtl_name.split("."))
+                    f.write("usemtl " + mtl_name + "\n")
+                elif line.startswith("v "):
+                    nums = line.split()
+                    x = float(nums[1])
+                    z = nums[2]
+                    y = float(nums[3])
+                    f.write("v {} {} {}\n".format(y, z, -x))
+                else:
+                    f.write(line)
 
-    os.chdir(cwd)
+        os.chdir(cwd)
+
+        # Copy it from $GAME/maps to hla_addon_content/models
+        # TODO: MTL files too
+        copy_path = os.path.join(constants.ROOT_PATH, ("hla_addon_content\\models\\movers" if is_mover else "hla_addon_content\\models"))
+        copy_path = os.path.join(copy_path, os.path.basename(out_map_path))
+        copyfile(out_map_path, copy_path)
     
 def writeMoverMapFile(map_path, name, contents):
     map_dir = os.path.dirname(map_path)
@@ -78,6 +85,19 @@ def writeMoverMapFile(map_path, name, contents):
             f.write(line)
         f.write("End Map\n")
 
+def getActorClass(line):
+    return tokenValue(line, 2)
+
+def getActorName(line):
+    return tokenValue(line, 3)
+
+def tokenValue(line, index):
+    tokens = line.split()
+    if len(tokens) <= index:
+        return None
+    ret = tokens[index]
+    return ret.split("=")[-1]
+
 def writeMovers(map_path):
     print("Reading movers for " + map_path)
     with open(map_path, "r") as f:
@@ -85,10 +105,10 @@ def writeMovers(map_path):
         mover_contents = []
         mover_name = None
         for line in f:
-            if line.startswith("Begin Actor Class=Mover"):
+            actorClass = getActorClass(line)
+            if actorClass == "Mover" or actorClass == "ElevatorMover":
                 is_mover = True
-                index = len("Begin Actor Class=Mover Name=")
-                mover_name = line[index:].strip()
+                mover_name = getActorName(line)
                 
             if is_mover:
                 # Don't apply any transformations - we'll do that later
