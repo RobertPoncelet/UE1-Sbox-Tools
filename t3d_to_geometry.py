@@ -58,16 +58,16 @@ def convertMapFile(game, path):
                     x = float(nums[1])
                     z = nums[2]
                     y = float(nums[3])
-                    f.write("v {} {} {}\n".format(y, z, -x))
+                    f.write("v {} {} {}\n".format(-y, z, x))
                 else:
                     f.write(line)
 
         os.chdir(cwd)
 
         # Copy it from $GAME/maps to hla_addon_content/models
-        # TODO: MTL files too
         copy_path = os.path.join(constants.ROOT_PATH, ("hla_addon_content\\models\\movers" if is_mover else "hla_addon_content\\models"))
         copy_path = os.path.join(copy_path, os.path.basename(out_map_path))
+        print("Copying " + out_map_path + " to " + copy_path)
         copyfile(out_map_path, copy_path)
     
 def writeMoverMapFile(map_path, name, contents):
@@ -106,9 +106,13 @@ def writeMovers(map_path):
         mover_name = None
         for line in f:
             actorClass = getActorClass(line)
-            if actorClass == "Mover" or actorClass == "ElevatorMover":
+            if actorClass == "Mover" or actorClass == "ElevatorMover" or actorClass == "LoopMover":
                 is_mover = True
                 mover_name = getActorName(line)
+                # t3d_to_obj.exe doesn't like non-standard movers (without the "Mover" class name), so we fake it here
+                line = "Begin Actor Class=Mover Name={}\n".format(mover_name)
+                mover_contents.append(line)
+                continue
                 
             if is_mover:
                 # Don't apply any transformations - we'll do that later
