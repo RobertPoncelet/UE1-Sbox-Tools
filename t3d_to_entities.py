@@ -257,23 +257,29 @@ def getActors(path):
     #print(actors)
     return actors
 
+def transformKeyValues(rotation):
+    try:
+        rotation = rotation[1:-1] # Remove brackets
+        values = rotation.split(",")
+        values = { v.split("=")[0] : float(v.split("=")[1]) for v in values }
+    except IndexError:
+        values = {}
+    return values
+
 def locationToOrigin(location):
-    loc = location[1:-1] # Remove brackets
-    dims = loc.split(",")
-    pos = [0.0, 0.0, 0.0]
+    dims = transformKeyValues(location)
+    pos = [0., 0., 0.]
     for d in dims:
-        if d[0] == "X":
-            pos[0] = float(d[2:])
-        elif d[0] == "Y":
-            pos[1] = float(d[2:])
-        elif d[0] == "Z":
-            pos[2] = float(d[2:])
+        if d == "X":
+            pos[0] = dims[d]
+        elif d == "Y":
+            pos[1] = dims[d]
+        elif d == "Z":
+            pos[2] = dims[d]
     return "{} {} {}".format(pos[0]*constants.SCALE, -pos[1]*constants.SCALE, pos[2]*constants.SCALE) # Y is flipped
 
 def rotationToAngles(rotation, yawOffset=0.):
-    rotation = rotation[1:-1] # Remove brackets
-    values = rotation.split(",")
-    values = { v.split("=")[0] : float(v.split("=")[1]) for v in values }
+    values = transformKeyValues(rotation)
     angles = [0., 0., 0.]
     factor = -360. / 65536. # Unreal rotations seem to be encoded as 16-bit ints
     for key in values:
@@ -399,7 +405,7 @@ def buildWizardCard(actor, ent):
     return True
     
 def buildMover(actor, ent):
-    if actor["Class"] != "Mover" and actor["Class"] != "ElevatorMover":
+    if actor["Class"] != "Mover" and actor["Class"] != "ElevatorMover" and actor["Class"] != "LoopMover":
         return False
     ent.addProperty("classname", "tp_ent_door")
     ent.addProperty("model", "models/movers/" + actor["_mapname"] + "_" + actor["Name"] + ".vmdl")
@@ -606,10 +612,8 @@ def buildCommon(actor, ent):
     if "Location" in actor:
         ent.addProperty("origin", locationToOrigin(actor["Location"]))
         
-    if "Rotation" in actor:
-        ent.addProperty("angles", rotationToAngles(actor["Rotation"], -90.))
-    else:
-        ent.addProperty("angles", "0 -90 0")
+    rot = actor["Rotation"] if "Rotation" in actor else ""
+    ent.addProperty("angles", rotationToAngles(rot, -90.))
         
     if "DrawScale" in actor:
         scale = actor["DrawScale"]
