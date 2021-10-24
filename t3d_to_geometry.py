@@ -58,7 +58,11 @@ def convertMapFile(game, path):
                     x = float(nums[1])
                     z = nums[2]
                     y = float(nums[3])
-                    f.write("v {} {} {}\n".format(-y, z, x))
+                    # This is dumb but whatever
+                    if is_mover:
+                        f.write("v {} {} {}\n".format(-x, z, -y))
+                    else:
+                        f.write("v {} {} {}\n".format(-y, z, x))
                 else:
                     f.write(line)
 

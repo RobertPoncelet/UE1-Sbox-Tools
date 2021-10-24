@@ -289,8 +289,8 @@ def rotationToAngles(rotation, yawOffset=0.):
             angles[1] = values[key] * factor - 180. + yawOffset
         elif key == "Roll":
             angles[2] = values[key] * factor - 180.
-    #angles = [angles[1], angles[2], angles[0]] # Hammer stores rotations as Y Z X
-    return "{} {} {}".format(angles[0], angles[1], angles[2])
+    # Hammer stores rotations as Y Z X
+    return "{} {} {}".format(angles[2], angles[1], angles[0])
     
 def buildEntities(path, classes, numExistingEnts):
     global actors 
@@ -409,10 +409,6 @@ def buildMover(actor, ent):
         return False
     ent.addProperty("classname", "tp_ent_door")
     ent.addProperty("model", "models/movers/" + actor["_mapname"] + "_" + actor["Name"] + ".vmdl")
-    if "Rotation" in actor:
-        ent.addProperty("angles", rotationToAngles(actor["Rotation"], 0.))
-    else:
-        ent.addProperty("angles", "0 0 0")
     ent.addProperty("scales", "1 1 1") # Don't scale
     for key in actor:
         if (key == "SavedPos" or key == "SavedRot" # These aren't used AFAIK
@@ -612,8 +608,10 @@ def buildCommon(actor, ent):
     if "Location" in actor:
         ent.addProperty("origin", locationToOrigin(actor["Location"]))
         
-    rot = actor["Rotation"] if "Rotation" in actor else ""
-    ent.addProperty("angles", rotationToAngles(rot, -90.))
+    if "Rotation" in actor:
+        ent.addProperty("angles", rotationToAngles(actor["Rotation"], -90.))
+    else:
+        ent.addProperty("angles", "0 90 0")
         
     if "DrawScale" in actor:
         scale = actor["DrawScale"]
