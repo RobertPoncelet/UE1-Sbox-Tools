@@ -122,7 +122,7 @@ class _Array(list):
 		
 	def to_kv2(self):
 		if len(self) == 0:
-			return "[ ]"
+			return "\n{}[\n{}]".format(_kv2_indent, _kv2_indent)
 		if self.type == Element:
 
 			out = "\n{}[\n".format(_kv2_indent)
@@ -275,7 +275,7 @@ class Element(collections.OrderedDict):
 	@property
 	def name(self): return self._name
 	@name.setter
-	def name(self,value): self._name = str(value)
+	def name(self,value): self._name = str(value) if value is not None else None
 
 	@property
 	def type(self): return self._type
@@ -372,7 +372,8 @@ class Element(collections.OrderedDict):
 				return "{}\"{}\" {}\n".format(_kv2_indent,name,dm_type)
 		
 		out += _make_attr_str("id", "elementid", self.id)
-		out += _make_attr_str("name", "string", self.name)
+		if self.name is not None:
+			out += _make_attr_str("name", "string", self.name)
 		
 		for name in self:
 			attr = self[name]
@@ -398,7 +399,7 @@ class Element(collections.OrderedDict):
 				
 				out += _make_attr_str(name, type_str, _get_kv2_repr(attr), issubclass(t,_Array))
 		_sub_kv2_indent()
-		out += _kv2_indent + "}"
+		out += _kv2_indent + "}\n"
 		return out
 
 	def tobytes(self,dm):
