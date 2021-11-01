@@ -252,6 +252,17 @@ class Time(float):
 
 class _TimeArray(_Array):
 	type = Time
+
+class uint64(int):
+	@classmethod
+	def from_int(cls,int_value):
+		return uint64(int_value)
+		
+	def tobytes(self):
+		return struct.pack("i",int(self))
+
+	def __str__(self):
+		return hex(self)
 		
 def make_array(l,t):
 	if t not in _dmxtypes_all:
@@ -414,7 +425,7 @@ class Element(collections.OrderedDict):
 class _ElementArray(_Array):
 	type = Element
 
-_dmxtypes = [Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,Quaternion,Matrix,int,int]
+_dmxtypes = [Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,Quaternion,Matrix,uint64,int]
 _dmxtypes_array = [_ElementArray,_IntArray,_FloatArray,_BoolArray,_StrArray,_BinaryArray,_TimeArray,_ColorArray,_Vector2Array,_Vector3Array,_Vector4Array,_AngleArray,_QuaternionArray,_MatrixArray,_IntArray,_IntArray]
 _dmxtypes_all = _dmxtypes + _dmxtypes_array
 _dmxtypes_str = ["element","int","float","bool","string","binary","time","color","vector2","vector3","vector4","angle","quaternion","matrix","uint64","uint8"]
@@ -427,7 +438,7 @@ attr_list_v2 = [
 	None,Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,Quaternion,Matrix,
 	_ElementArray,_IntArray,_FloatArray,_BoolArray,_StrArray,_BinaryArray,_TimeArray,_ColorArray,_Vector2Array,_Vector3Array,_Vector4Array,_AngleArray,_QuaternionArray,_MatrixArray
 ]
-attr_list_v3 = [None,Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,Quaternion,Matrix,int,int] # last two are meant to be uint64, uint8
+attr_list_v3 = [None,Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,Quaternion,Matrix,str,int] # last two are meant to be uint64, uint8
 
 def _get_type_from_string(type_str):
 	return _dmxtypes[_dmxtypes_str.index(type_str)]
@@ -832,7 +843,7 @@ def load(path = None, in_file = None, element_path = None):
 					
 					elif type_str == 'string': return kv2_value
 					elif type_str in ['int',"uint8"]: return int(kv2_value)
-					elif type_str == "uint64": return int(kv2_value, 0)
+					elif type_str == "uint64": return uint64(kv2_value, 0)
 					elif type_str == 'float': return float(kv2_value)
 					elif type_str == 'bool': return bool(int(kv2_value))
 					elif type_str == 'time': return Time(kv2_value)
