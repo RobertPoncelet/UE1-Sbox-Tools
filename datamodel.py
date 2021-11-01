@@ -263,7 +263,7 @@ class uint64(int):
 		return uint64(int_value)
 		
 	def tobytes(self):
-		return struct.pack("i",int(self))
+		return struct.pack("Q",int(self))
 
 	def __str__(self):
 		return hex(self)
@@ -393,7 +393,7 @@ class Element(collections.OrderedDict):
 		for name in self:
 			attr = self[name]
 			if attr == None:
-				out += _make_attr_str(name, "element", None)
+				out += _make_attr_str(name, "element", "")
 				continue
 			
 			t = type(attr)
