@@ -183,6 +183,8 @@ class Quaternion(Vector4):
 	pass
 class Angle(Vector3):
 	pass
+class QAngle(Vector3):
+	pass
 class _VectorArray(_Array):
 	type = list
 	def __init__(self,l=None):
@@ -198,6 +200,8 @@ class _QuaternionArray(_Vector4Array):
 	type = Quaternion
 class _AngleArray(_Vector3Array):
 	type = Angle
+class _QAngleArray(_Vector3Array):
+	type = QAngle
 
 class Matrix(list):
 	type = list
@@ -425,20 +429,20 @@ class Element(collections.OrderedDict):
 class _ElementArray(_Array):
 	type = Element
 
-_dmxtypes = [Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,Quaternion,Matrix,uint64,int]
-_dmxtypes_array = [_ElementArray,_IntArray,_FloatArray,_BoolArray,_StrArray,_BinaryArray,_TimeArray,_ColorArray,_Vector2Array,_Vector3Array,_Vector4Array,_AngleArray,_QuaternionArray,_MatrixArray,_IntArray,_IntArray]
+_dmxtypes = [Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,QAngle,Quaternion,Matrix,uint64,int]
+_dmxtypes_array = [_ElementArray,_IntArray,_FloatArray,_BoolArray,_StrArray,_BinaryArray,_TimeArray,_ColorArray,_Vector2Array,_Vector3Array,_Vector4Array,_AngleArray,_QAngleArray,_QuaternionArray,_MatrixArray,_IntArray,_IntArray]
 _dmxtypes_all = _dmxtypes + _dmxtypes_array
-_dmxtypes_str = ["element","int","float","bool","string","binary","time","color","vector2","vector3","vector4","angle","quaternion","matrix","uint64","uint8"]
+_dmxtypes_str = ["element","int","float","bool","string","binary","time","color","vector2","vector3","vector4","angle","qangle","quaternion","matrix","uint64","uint8"]
 
 attr_list_v1 = [
-	None,Element,int,float,bool,str,Binary,"ObjectID",Color,Vector2,Vector3,Vector4,Angle,Quaternion,Matrix,
-	_ElementArray,_IntArray,_FloatArray,_BoolArray,_StrArray,_BinaryArray,"_ObjectIDArray",_ColorArray,_Vector2Array,_Vector3Array,_Vector4Array,_AngleArray,_QuaternionArray,_MatrixArray
+	None,Element,int,float,bool,str,Binary,"ObjectID",Color,Vector2,Vector3,Vector4,Angle,QAngle,Quaternion,Matrix,
+	_ElementArray,_IntArray,_FloatArray,_BoolArray,_StrArray,_BinaryArray,"_ObjectIDArray",_ColorArray,_Vector2Array,_Vector3Array,_Vector4Array,_AngleArray,_QAngleArray,_QuaternionArray,_MatrixArray
 ] # ObjectID is an element UUID
 attr_list_v2 = [
-	None,Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,Quaternion,Matrix,
-	_ElementArray,_IntArray,_FloatArray,_BoolArray,_StrArray,_BinaryArray,_TimeArray,_ColorArray,_Vector2Array,_Vector3Array,_Vector4Array,_AngleArray,_QuaternionArray,_MatrixArray
+	None,Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,QAngle,Quaternion,Matrix,
+	_ElementArray,_IntArray,_FloatArray,_BoolArray,_StrArray,_BinaryArray,_TimeArray,_ColorArray,_Vector2Array,_Vector3Array,_Vector4Array,_AngleArray,_QAngleArray,_QuaternionArray,_MatrixArray
 ]
-attr_list_v3 = [None,Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,Quaternion,Matrix,str,int] # last two are meant to be uint64, uint8
+attr_list_v3 = [None,Element,int,float,bool,str,Binary,Time,Color,Vector2,Vector3,Vector4,Angle,QAngle,Quaternion,Matrix,str,int] # last two are meant to be uint64, uint8
 
 def _get_type_from_string(type_str):
 	return _dmxtypes[_dmxtypes_str.index(type_str)]
@@ -847,7 +851,7 @@ def load(path = None, in_file = None, element_path = None):
 					elif type_str == 'float': return float(kv2_value)
 					elif type_str == 'bool': return bool(int(kv2_value))
 					elif type_str == 'time': return Time(kv2_value)
-					elif type_str.startswith('vector') or type_str in ['color','quaternion','angle']:
+					elif type_str.startswith('vector') or type_str in ['color','quaternion','angle','qangle']:
 						return _get_type_from_string(type_str)( [float(i) for i in kv2_value.split(" ")] )
 					elif type_str == 'binary': return Binary(binascii.unhexlify(kv2_value))
 				
@@ -1002,6 +1006,7 @@ def load(path = None, in_file = None, element_path = None):
 				elif attr_type == Vector2:		return Vector2(get_vec(in_file,2))
 				elif attr_type == Vector3:		return Vector3(get_vec(in_file,3))
 				elif attr_type == Angle:		return Angle(get_vec(in_file,3))
+				elif attr_type == QAngle:		return QAngle(get_vec(in_file,3))
 				elif attr_type == Vector4:		return Vector4(get_vec(in_file,4))
 				elif attr_type == Quaternion:	return Quaternion(get_vec(in_file,4))
 				elif attr_type == Matrix:
