@@ -5,6 +5,7 @@ import glob
 import os.path
 import sys
 import multiprocessing as mp
+import datamodel as dmx
 
 class HammerClass:
     className = ""
@@ -30,6 +31,32 @@ class HammerClass:
         
     def addClass(self, hClass):
         self.classes.append(hClass)
+
+    def toEntityElement(self, datamodel):
+        e = datamodel.add_element(None, "CMapEntity")
+        props = list(self.properties) # Make a copy so we can remove stuff
+
+        if "origin" in props:
+            e["origin"] = dmx.Vector3(props["origin"].split())
+            del(props["origin"])
+        if "angles" in props:
+            e["angles"] = dmx.QAngle(props["angles"].split())
+            del(props["angles"])
+        if "scales" in props:
+            e["scales"] = dmx.Vector3(props["scales"].split())
+            del(props["scales"])
+        if "id" in props:
+            e["nodeID"] = int(props["id"])
+            e["referenceID"] = dmx.uint64(props["id"])
+            del(props["id"])
+
+        # TODO: other default keyvalues
+
+        stringProps = datamodel.add_element(None, "EditGameClassProps")
+        for key in props:
+            stringProps[key] = str(props[key])
+        e["entity_properties"] = stringProps
+        return e
         
     def addOutput(self, outputName, target, targetInput, param, delay, maxTimes):
         if not any(c.className == "connections" for c in self.classes):
