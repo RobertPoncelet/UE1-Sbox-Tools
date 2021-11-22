@@ -33,9 +33,23 @@ class HammerClass:
     def addClass(self, hClass):
         self.classes.append(hClass)
 
-    def toEntityElement(self, datamodel):
-        e = datamodel.add_element(None, "CMapEntity")
-        props = list(self.properties) # Make a copy so we can remove stuff
+    def getTemplateEntity(self):
+        #e = dmx.load("template_entity.vmap").root #datamodel.add_element(None, "CMapEntity")
+        # TODO: why does loading template_entity.vmap result in the wrong root element??
+        e = dmx.load("test_input.vmap").root["world"]["children"][0]
+        e["entity_properties"].clear()
+        del(e["origin"])
+        del(e["angles"])
+
+        del(e["scales"])
+        del(e["nodeID"])
+        del(e["referenceID"])
+        return e
+
+    def toEntityElement(self):
+        e = self.getTemplateEntity()
+
+        props = dict(self.properties) # Make a copy so we can remove stuff
 
         if "origin" in props:
             e["origin"] = dmx.Vector3(props["origin"].split())
@@ -53,10 +67,8 @@ class HammerClass:
 
         # TODO: other default keyvalues
 
-        stringProps = datamodel.add_element(None, "EditGameClassProps")
         for key in props:
-            stringProps[key] = str(props[key])
-        e["entity_properties"] = stringProps
+            e["entity_properties"][key] = str(props[key])
         return e
         
     def addOutput(self, outputName, target, targetInput, param, delay, maxTimes):
@@ -554,13 +566,33 @@ def getModels():
         models = ["\\".join(path.split("\\")[2:]).lower() for path in models] # this is necessary because this directory is not the same as the addon content directory
     return models
 
-def convertMapFile(path):
-    out_path = path[:-3] + "vmf"
+def convertMapFile(path, format):
+    if format == "dmx":
+        extension = "vmap"
+    else:
+        extension = "vmf"
+    out_path = path[:-3] + extension
+
     if not constants.OVERWRITE and os.path.isfile(out_path):
         print("Not overwriting " + out_map_path)
         return
     print("Processing " + path)
+    if format == "vmf":
+        convertMapFileToVMF(path, out_path)
+    else: #elif format == "dmx":
+        convertMapFileToDMX(path, out_path)
 
+def convertMapFileToDMX(path, out_path):
+    dm = dmx.load("template_map.vmap")
+
+    globalClasses = []
+    buildEntities(path, globalClasses, 0)
+    for ent in globalClasses:
+        dm.root["world"]["children"].append(ent.toEntityElement())
+
+    dm.write(out_path, "keyvalues2", 4)
+
+def convertMapFileToVMF(path, out_path):
     globalClasses = []
 
     versioninfo = HammerClass("versioninfo")
@@ -619,7 +651,18 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    args.format = args.format.lower()
+    if args.format != "dmx" and args.format != "vmf":
+        print("Invalid format " + args.format + "; choose DMX or VMF")
+        quit()
+
     maps = glob.glob(args.maps, recursive=True)
 
+    if len(maps) == 0:
+        print("No files match " + args.maps)
+        quit()
+
+    maps_args = [(m, args.format) for m in maps]
+
     with mp.Pool(processes=constants.NUM_CORES) as pool:
-        pool.map(convertMapFile, maps)
+        pool.starmap(convertMapFile, maps_args)

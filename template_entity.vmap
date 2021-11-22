@@ -1,0 +1,49 @@
+<!-- dmx encoding keyvalues2 4 format vmap 29 -->
+"$prefix_element$"
+{
+	"id" "elementid" "66339273-fae9-4fe6-b084-b5ff4ee14219"
+	"map_asset_references" "string_array" 
+	[
+	]
+}
+"CMapEntity"
+{
+    "children" "element_array" 
+    [ 
+    ]
+    "editorOnly" "bool" "0"
+    "force_hidden" "bool" "0"
+    "transformLocked" "bool" "0"
+    "variableTargetKeys" "string_array" 
+    [
+    ]
+    "variableNames" "string_array" 
+    [
+    ]
+    "relayPlugData" "DmePlugList"
+    {
+        "id" "elementid" "c712369a-8c6f-4282-8a9e-8bb2757327b0"
+        "names" "string_array" 
+        [
+        ]
+        "dataTypes" "int_array" 
+        [
+        ]
+        "plugTypes" "int_array" 
+        [
+        ]
+        "descriptions" "string_array" 
+        [
+        ]
+    }
+    
+    "connectionsData" "element_array" 
+    [
+    ]
+    "entity_properties" "EditGameClassProps"
+    {
+    }
+    
+    "hitNormal" "vector3" "0 0 1"
+    "isProceduralEntity" "bool" "0"
+}
