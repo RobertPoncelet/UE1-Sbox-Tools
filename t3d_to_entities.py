@@ -1,4 +1,5 @@
 from collections import namedtuple
+import argparse
 import colorsys
 import constants
 import glob
@@ -610,10 +611,15 @@ def convertMapFile(path):
             c.write(f, 0)
 
 if __name__ == "__main__":
-    glob_path = sys.argv[1] if len(sys.argv) > 1 else "../hp*/maps/*.t3d"
-    maps = glob.glob(glob_path, recursive=True)
+    parser = argparse.ArgumentParser(description='Convert a T3D file to a VMF or VMAP.')
+    parser.add_argument('--maps', type=str, default="../hp*/maps/*.t3d",
+                        help='Glob specifying which maps to convert.')
+    parser.add_argument('--format', default="dmx",
+                        help='Output format (DMX or VMF).')
 
-    #maps = [maps[0]] # remove for all maps
+    args = parser.parse_args()
+
+    maps = glob.glob(args.maps, recursive=True)
 
     with mp.Pool(processes=constants.NUM_CORES) as pool:
         pool.map(convertMapFile, maps)
