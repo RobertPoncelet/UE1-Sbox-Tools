@@ -222,7 +222,7 @@ def buildLight(actor, ent):
     ent.addProperty("baked_light_indexing", 0)
 
     if actor["Class"] == "Spotlight":
-        ent.addProperty("classname", "light_spot_") # Change the name to avoid the importer trying to convert from Source 1
+        ent.addProperty("classname", "light_spot")
         cone = float(actor["LightCone"]) if "LightCone" in actor else 128.
         angle = (cone / 256.) * 90.
         ent.addProperty("innerconeangle", angle/2.)
@@ -455,7 +455,7 @@ def buildModel(actor, ent):
         
     # Otherwise, must be a generic model
     modelName = actor["Class"]
-    modelPath = ("models\\" + modelName + ".vmdl").lower()
+    modelPath = ("models/" + modelName + ".vmdl").lower()
     if modelPath not in getModels():
         return False
     ent.addProperty("classname", "prop_static")
@@ -563,7 +563,7 @@ def getModels():
     global models
     if not models:
         models = glob.glob("..\\hla_addon_content\\models\\*.vmdl")
-        models = ["\\".join(path.split("\\")[2:]).lower() for path in models] # this is necessary because this directory is not the same as the addon content directory
+        models = ["/".join(path.split("\\")[2:]).lower() for path in models] # this is necessary because this directory is not the same as the addon content directory
     return models
 
 def convertMapFile(path, format):
