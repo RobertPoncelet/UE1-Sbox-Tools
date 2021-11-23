@@ -1,4 +1,5 @@
 from collections import namedtuple
+from shutil import copyfile
 import argparse
 import colorsys
 import constants
@@ -296,7 +297,7 @@ def buildDiffindoBarrier(actor, ent):
         return False
     ent.addProperty("classname", "tp_ent_diffindobarrier")
     modelName = actor["Class"]
-    modelPath = ("models\\" + modelName + ".vmdl").lower()
+    modelPath = ("models/" + modelName + ".vmdl").lower()
     ent.addProperty("model", modelPath)
     return True
     
@@ -397,7 +398,7 @@ def buildNpc(actor, ent):
     if not isNpcName:
         return False
     ent.addProperty("classname", "tp_npc_generic")
-    ent.addProperty("model", "models\\gen_fem_1.vmdl")
+    ent.addProperty("model", "models/gen_fem_1.vmdl")
     return True
     
 def buildTemplate(actor, ent):
@@ -581,6 +582,12 @@ def convertMapFile(path, format):
         convertMapFileToVMF(path, out_path)
     else: #elif format == "dmx":
         convertMapFileToDMX(path, out_path)
+
+    # Copy it from $GAME/maps to hla_addon_content/maps
+    copy_path = os.path.join(constants.ROOT_PATH, "hla_addon_content\\maps")
+    copy_path = os.path.join(copy_path, os.path.basename(out_path))
+    copyfile(out_path, copy_path)
+    print("Finished copying " + out_path + " to " + copy_path)
 
 def convertMapFileToDMX(path, out_path):
     dm = dmx.load("template_map.vmap")
