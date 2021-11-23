@@ -1,4 +1,5 @@
 from collections import namedtuple
+from dataclasses import dataclass
 from shutil import copyfile
 import argparse
 import colorsys
@@ -20,6 +21,7 @@ class HammerClass:
         self.className = inName
         self.properties = {}
         self.classes = []
+        self.dmxConnections = []
         self.f = None
         self.indentLevel = 0
         
@@ -47,6 +49,27 @@ class HammerClass:
         del(e["referenceID"])
         return e
 
+    @dataclass
+    class Connection:
+        outputName: str
+        targetName: str
+        inputName: str
+        overrideParam: str
+        delay: float = 0.0
+        timesToFire: int = -1
+        targetType: int = 7 # TODO: is it ever anything else?
+
+    def createDmxConnection(self, connection, elem):
+        c = elem.datamodel.add_element(None, "DmeConnectionData")
+        c["outputName"] = connection.outputName
+        c["targetName"] = connection.targetName
+        c["inputName"] = connection.inputName
+        c["overrideParam"] = connection.overrideParam
+        c["delay"] = connection.delay
+        c["timesToFire"] = connection.timesToFire
+        c["targetType"] = connection.targetType
+        return c
+
     def toEntityElement(self):
         e = self.getTemplateEntity()
 
@@ -70,6 +93,10 @@ class HammerClass:
 
         for key in props:
             e["entity_properties"][key] = str(props[key])
+        
+        for c in self.dmxConnections:
+            e["connectionsData"].append(self.createDmxConnection(c, e))
+
         return e
         
     def addOutput(self, outputName, target, targetInput, param, delay, maxTimes):
@@ -81,6 +108,7 @@ class HammerClass:
                 value = ",".join([str(s) for s in args])
                 c.addProperty(outputName, value)
                 break
+        self.dmxConnections.append(self.Connection(outputName, target, targetInput, param, delay, maxTimes))
         
     def write(self, inFile, inIndentLevel):
         self.f = inFile
@@ -584,7 +612,7 @@ def convertMapFile(path, format):
         convertMapFileToDMX(path, out_path)
 
     # Copy it from $GAME/maps to hla_addon_content/maps
-    copy_path = os.path.join(constants.ROOT_PATH, "hla_addon_content\\maps")
+    copy_path = "..\\hla_addon_content\\maps" #os.path.join(constants.ROOT_PATH, "hla_addon_content\\maps")
     copy_path = os.path.join(copy_path, os.path.basename(out_path))
     copyfile(out_path, copy_path)
     print("Finished copying " + out_path + " to " + copy_path)
