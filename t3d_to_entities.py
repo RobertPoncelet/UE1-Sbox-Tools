@@ -36,17 +36,25 @@ class HammerClass:
     def addClass(self, hClass):
         self.classes.append(hClass)
 
-    def getTemplateElement(self):
-        #e = dmx.load("template_entity.vmap").root #datamodel.add_element(None, "CMapEntity")
-        # TODO: why does loading template_entity.vmap result in the wrong root element??
-        e = dmx.load("test_input.vmap").root["world"]["children"][0]
-        e["entity_properties"].clear()
-        del(e["origin"])
-        del(e["angles"])
+    def getTemplateElement(self, datamodel):
+        e = datamodel.add_element(None, "CMapEntity")
+        e["children"] = dmx.make_array(None, dmx.Element)
+        e["editorOnly"] = False
+        e["force_hidden"] = False
+        e["transformLocked"] = False
+        e["variableTargetKeys"] = dmx.make_array(None, str)
+        e["variableNames"] = dmx.make_array(None, str)
+        relayPlugData = datamodel.add_element(None, "DmePlugList")
+        relayPlugData["names"] = dmx.make_array(None, str)
+        relayPlugData["dataTypes"] = dmx.make_array(None, int)
+        relayPlugData["plugTypes"] = dmx.make_array(None, int)
+        relayPlugData["descriptions"] = dmx.make_array(None, str)
+        e["relayPlugData"] = relayPlugData
+        e["connectionsData"] = dmx.make_array(None, dmx.Element)
+        e["entity_properties"] = datamodel.add_element(None, "EditGameClassProps")
+        e["hitNormal"] = dmx.Vector3([0, 0, 1])
+        e["isProceduralEntity"] = False
 
-        del(e["scales"])
-        del(e["nodeID"])
-        del(e["referenceID"])
         return e
 
     @dataclass
@@ -59,19 +67,19 @@ class HammerClass:
         timesToFire: int = -1
         targetType: int = 7 # TODO: is it ever anything else?
 
-    def createDmxConnection(self, connection, elem):
-        c = elem.datamodel.add_element(None, "DmeConnectionData")
-        c["outputName"] = connection.outputName
-        c["targetName"] = connection.targetName
-        c["inputName"] = connection.inputName
-        c["overrideParam"] = connection.overrideParam
-        c["delay"] = connection.delay
-        c["timesToFire"] = connection.timesToFire
-        c["targetType"] = connection.targetType
+    def createDmxConnection(self, connection, datamodel):
+        c = datamodel.add_element(None, "DmeConnectionData")
+        c["outputName"] = str(connection.outputName)
+        c["targetName"] = str(connection.targetName)
+        c["inputName"] = str(connection.inputName)
+        c["overrideParam"] = str(connection.overrideParam) if connection.overrideParam else ""
+        c["delay"] = float(connection.delay)
+        c["timesToFire"] = int(connection.timesToFire)
+        c["targetType"] = int(connection.targetType)
         return c
 
-    def toEntityElement(self):
-        e = self.getTemplateElement()
+    def toEntityElement(self, datamodel):
+        e = self.getTemplateElement(datamodel)
 
         props = dict(self.properties) # Make a copy so we can remove stuff
 
@@ -95,7 +103,7 @@ class HammerClass:
             e["entity_properties"][key] = str(props[key])
         
         for c in self.dmxConnections:
-            e["connectionsData"].append(self.createDmxConnection(c, e))
+            e["connectionsData"].append(self.createDmxConnection(c, datamodel))
 
         return e
         
@@ -492,10 +500,12 @@ def buildModel(actor, ent):
     ent.addProperty("fadescale", "1")
     ent.addProperty("model", modelPath)
     ent.addProperty("skin", 0)
-    ent.addProperty("solid", 3)
-    if actor["Class"] == "LightRay":
+    if "LightRay" in actor["Class"]:
         ent.addProperty("disableshadows", 1)
         ent.addProperty("renderamt", 128)
+        ent.addProperty("solid", 3)
+    else:
+        ent.addProperty("solid", 6)
     return True
 
 def buildCommon(actor, ent):
@@ -623,7 +633,7 @@ def convertMapFileToDMX(path, out_path):
     globalClasses = []
     buildEntities(path, globalClasses, 0)
     for ent in globalClasses:
-        dm.root["world"]["children"].append(ent.toEntityElement())
+        dm.root["world"]["children"].append(ent.toEntityElement(dm))
 
     dm.write(out_path, "keyvalues2", 4)
 
