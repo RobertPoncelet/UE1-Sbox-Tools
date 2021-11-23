@@ -36,7 +36,7 @@ class HammerClass:
     def addClass(self, hClass):
         self.classes.append(hClass)
 
-    def getTemplateEntity(self):
+    def getTemplateElement(self):
         #e = dmx.load("template_entity.vmap").root #datamodel.add_element(None, "CMapEntity")
         # TODO: why does loading template_entity.vmap result in the wrong root element??
         e = dmx.load("test_input.vmap").root["world"]["children"][0]
@@ -71,7 +71,7 @@ class HammerClass:
         return c
 
     def toEntityElement(self):
-        e = self.getTemplateEntity()
+        e = self.getTemplateElement()
 
         props = dict(self.properties) # Make a copy so we can remove stuff
 
@@ -600,10 +600,10 @@ def convertMapFile(path, format):
         extension = "vmap"
     else:
         extension = "vmf"
-    out_path = path[:-3] + extension
+    out_path = os.path.splitext(path)[0] + "." + extension
 
     if not constants.OVERWRITE and os.path.isfile(out_path):
-        print("Not overwriting " + out_map_path)
+        print("Not overwriting " + out_path)
         return
     print("Processing " + path)
     if format == "vmf":
