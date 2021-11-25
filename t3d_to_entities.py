@@ -9,7 +9,7 @@ import sys
 import multiprocessing as mp
 import datamodel as dmx
 
-def convertMapFile(path, format):
+def convertMapFile(path, format, test):
     if format == "dmx":
         extension = "vmap"
     else:
@@ -21,9 +21,12 @@ def convertMapFile(path, format):
         return
     print("Processing " + path)
     if format == "vmf":
-        convertMapFileToVMF(path, out_path)
+        convertMapFileToVMF(path, out_path, test)
     else: #elif format == "dmx":
-        convertMapFileToDMX(path, out_path)
+        convertMapFileToDMX(path, out_path, test)
+
+    if test:
+        return
 
     # Copy it from $GAME/maps to hla_addon_content/maps
     copy_path = "..\\hla_addon_content\\maps" #os.path.join(constants.ROOT_PATH, "hla_addon_content\\maps")
@@ -31,7 +34,7 @@ def convertMapFile(path, format):
     copyfile(out_path, copy_path)
     print("Finished copying " + out_path + " to " + copy_path)
 
-def convertMapFileToDMX(path, out_path):
+def convertMapFileToDMX(path, out_path, test):
     dm = dmx.load("template_map.vmap")
 
     globalClasses = []
@@ -39,9 +42,10 @@ def convertMapFileToDMX(path, out_path):
     for ent in globalClasses:
         dm.root["world"]["children"].append(ent.toEntityElement(dm))
 
-    dm.write(out_path, "keyvalues2", 4)
+    if not test:
+        dm.write(out_path, "keyvalues2", 4)
 
-def convertMapFileToVMF(path, out_path):
+def convertMapFileToVMF(path, out_path, test):
     globalClasses = []
 
     versioninfo = hammer.HammerClass("versioninfo")
@@ -87,16 +91,19 @@ def convertMapFileToVMF(path, out_path):
     cordon.properties["active"] = "0"
     globalClasses.append(cordon)
 
-    with open(out_path, "w") as f:
-        for c in globalClasses:
-            c.write(f, 0)
+    if not test:
+        with open(out_path, "w") as f:
+            for c in globalClasses:
+                c.write(f, 0)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Convert a T3D file to a VMF or VMAP.')
-    parser.add_argument('--maps', type=str, default="../hp*/maps/*.t3d",
-                        help='Glob specifying which maps to convert.')
-    parser.add_argument('--format', default="dmx",
-                        help='Output format (DMX or VMF).')
+    parser = argparse.ArgumentParser(description="Convert a T3D file to a VMF or VMAP.")
+    parser.add_argument("--maps", type=str, default="../hp*/maps/*.t3d",
+                        help="Glob specifying which maps to convert.")
+    parser.add_argument("--format", default="dmx",
+                        help="Output format (DMX or VMF).")
+    parser.add_argument("--test", action="store_true", default=False,
+                        help="Only run the conversion code; don't actually write to any files")
 
     args = parser.parse_args()
 
@@ -111,7 +118,7 @@ if __name__ == "__main__":
         print("No files match " + args.maps)
         quit()
 
-    maps_args = [(m, args.format) for m in maps]
+    maps_args = [(m, args.format, args.test) for m in maps]
 
     with mp.Pool(processes=constants.NUM_CORES) as pool:
         pool.starmap(convertMapFile, maps_args)
