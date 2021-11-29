@@ -183,6 +183,8 @@ def buildCommon(actor, ent):
         ent.addProperty("targetname", actor["Name"])
     else:
         print("No name for actor!")
+
+    buildIO(actor, ent)
     
     editor = hammer.HammerClass("editor")
     editor.addProperty("color", "255 128 128")
@@ -218,6 +220,7 @@ def buildModel(actor, ent):
         return False
     ent.addProperty("classname", "prop_static")
     ent.addProperty("fademindist", "-1")
+
     ent.addProperty("fadescale", "1")
     ent.addProperty("model", modelPath)
     ent.addProperty("skin", 0)
@@ -244,6 +247,20 @@ def buildPointEnt(actor, ent):
         if func(actor, ent):
             return True
     return False
+
+def buildIO(actor, ent):
+    onceOnly = actor["bTriggerOnceOnly"] if "bTriggerOnceOnly" in actor else False
+    if "Event" in actor:
+        event = actor["Event"]
+        global actors
+        for other in actors:
+            if actor["Class"] in defaultIO and other["Class"] in defaultIO and "Name" in other and "Tag" in other and other["Tag"] == event:
+                thisIO = defaultIO[actor["Class"]]
+                otherIO = defaultIO[other["Class"]]
+                timesToFire = 1 if onceOnly else (thisIO.timesToFire if thisIO.timesToFire is not None else 0)
+                ent.addOutput(thisIO.outputName, other["Name"], otherIO.inputName, 
+                    thisIO.overrideParam, thisIO.delay, timesToFire)
+    return False # Not done yet
 
 def buildSprite(actor, ent):
     if not actor["Class"] == "candleflame":
@@ -448,14 +465,7 @@ def buildSpellTrigger(actor, ent):
     spell = actor["eVulnerableToSpell"][6:] if "eVulnerableToSpell" in actor else "Alohamora"
     if spell == "Alohomora" : spell = "Alohamora" # Fix dumb "AlohOmora" typo in the original maps lol
     ent.addProperty("spelltype", spell)
-    onceOnly = actor["bTriggerOnceOnly"] if "bTriggerOnceOnly" in actor else False
-    if "Event" in actor:
-        event = actor["Event"]
-        global actors
-        for other in actors:
-            if other["Class"] in defaultIO and "Name" in other and "Tag" in other and other["Tag"] == event:
-                ioInfo = defaultIO[other["Class"]]
-                ent.addOutput("OnTrigger", other["Name"], ioInfo.inputName, ioInfo.overrideParam, ioInfo.delay, 1 if onceOnly else -1)
+    
     return True
     
 def buildCounter(actor, ent):
