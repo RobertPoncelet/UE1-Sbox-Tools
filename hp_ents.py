@@ -67,14 +67,24 @@ def rotationToAngles(rotation, yawOffset=0.):
     # Hammer stores rotations as Y Z X
     return "{} {} {}".format(angles[2], angles[1], angles[0])
 
-# Maps Actor classname (not Entity classname) to the default input for that Entity
-#EntityIO = namedtuple("EntityIO", "output input param delay maxTimes")
+# Maps Actor classname (not Entity classname) to the default input/output for that Entity
 defaultIO = {
-    "spellTrigger" : hammer.EntityIO("OnTrigger", None, "Trigger", None, 0, None), # maxTimes should be deduced from the Actor
-    "Mover" : hammer.EntityIO("OnFullyOpen", None, "Toggle", None, 0, -1),
-    "Counter" : hammer.EntityIO("OnHitMax", None, "Add", 1, 0, -1),
-    "Trigger" : hammer.EntityIO("OnStartTouch", None, "Enable", None, 0, -1)
+    "spellTrigger"  : hammer.EntityIO("OnTrigger", None, "Trigger", None, 0, None), # maxTimes should be deduced from the Actor
+    "Mover"         : hammer.EntityIO("OnFullyOpen", None, "Toggle", None, 0, -1),
+    "Counter"       : hammer.EntityIO("OnHitMax", None, "Add", 1, 0, -1),
+    "Trigger"       : hammer.EntityIO("OnStartTouch", None, "Enable", None, 0, -1),
+    "DiffindoVines" : hammer.EntityIO("OnBreak", None, "Break", None, 0, -1),
+    "Ectoplasma"    : hammer.EntityIO("OnRemove", None, "Remove", None, 0, -1)
 }
+
+defaultIOAliases = {
+    "DiffindoVines" : ["DiffindoRoots", "DiffindoWeb", "DiffindoRope64", "DiffindoRope128"],
+    "Ectoplasma" : ["EctoplasmaBIG", "Ectoblob"]
+}
+
+for key in defaultIOAliases:
+    for alias in defaultIOAliases[key]:
+        defaultIO[alias] = defaultIO[key]
 
 models = None
 def getModels():
@@ -187,7 +197,8 @@ def buildModel(actor, ent):
         buildBean,
         buildWizardCard,
         buildMover, 
-        buildDiffindoBarrier, 
+        buildDiffindoBarrier,
+        buildEctoplasm,
         buildSpongifyPad, 
         buildSpongifyTarget,
         buildGnome,
@@ -342,12 +353,25 @@ def buildMover(actor, ent):
 def buildDiffindoBarrier(actor, ent):
     if (actor["Class"] != "DiffindoVines" 
         and actor["Class"] != "DiffindoRoots"
-        and actor["Class"] != "DiffindoWeb"):
+        and actor["Class"] != "DiffindoWeb"
+        and "DiffindoRope" not in actor):
         return False
     ent.addProperty("classname", "tp_ent_diffindobarrier")
     modelName = actor["Class"]
     modelPath = ("models/" + modelName + ".vmdl").lower()
     ent.addProperty("model", modelPath)
+    return True
+
+def buildEctoplasm(actor, ent):
+    if ("Ectoplasma" not in actor["Class"]
+        and "Ectoblob" != actor["Class"]):
+        return False
+    ent.addProperty("classname", "tp_ent_ectoplasm")
+    modelName = actor["Class"]
+    modelPath = ("models/" + modelName + ".vmdl").lower()
+    ent.addProperty("model", modelPath)
+    if "fShrinkTime" in actor:
+        ent.addProperty("shrinktime", actor["fShrinkTime"])
     return True
     
 def buildSpongifyPad(actor, ent):
