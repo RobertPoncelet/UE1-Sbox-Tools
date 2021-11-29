@@ -32,10 +32,10 @@ def getActors(path):
             currentActor[key] = value
     return actors
 
-def transformKeyValues(rotation):
+def transformKeyValues(kvString):
     try:
-        rotation = rotation[1:-1] # Remove brackets
-        values = rotation.split(",")
+        kvString = kvString[1:-1] # Remove brackets
+        values = kvString.split(",")
         values = { v.split("=")[0] : float(v.split("=")[1]) for v in values }
     except IndexError:
         values = {}
@@ -207,6 +207,7 @@ def buildModel(actor, ent):
         buildHorklumps,
         buildLumosGargoyle,
         buildMixingCauldron,
+        buildKnight,
         buildNpc,
     ]
     for func in modelEntityBuilders:
@@ -315,6 +316,7 @@ def buildChest(actor, ent):
     if not actor["Class"].startswith("Chest"):
         return False
     ent.addProperty("classname", "tp_item_chest")
+    ent.addProperty("skin_str", actor["Class"][len("Chest"):])
     numBeans = 0
     wizardcard = None
     for key in actor:
@@ -322,6 +324,8 @@ def buildChest(actor, ent):
             numBeans += 1
         if key.startswith("EjectedObjects") and "WC" in actor[key]:
             wizardcard = actor[key][2:]
+    if "iNumberOfBeans" in actor:
+        numBeans += int(actor["iNumberOfBeans"])
     ent.addProperty("numbeans", numBeans)
     if wizardcard: ent.addProperty("wizardcard", wizardcard)
     
@@ -371,7 +375,7 @@ def buildDiffindoBarrier(actor, ent):
     if (actor["Class"] != "DiffindoVines" 
         and actor["Class"] != "DiffindoRoots"
         and actor["Class"] != "DiffindoWeb"
-        and "DiffindoRope" not in actor):
+        and "DiffindoRope" not in actor["Class"]):
         return False
     ent.addProperty("classname", "tp_ent_diffindobarrier")
     modelName = actor["Class"]
@@ -430,7 +434,7 @@ def buildLumosGargoyle(actor, ent):
     return True
     
 def buildMixingCauldron(actor, ent):
-    if actor["Class"] != "SkyZoneInfo":
+    if actor["Class"] != "CauldronMixing":
         return False
     ent.addProperty("classname", "tp_ent_mixingcauldron")
     return True
@@ -482,6 +486,20 @@ def buildNpc(actor, ent):
         return False
     ent.addProperty("classname", "tp_npc_generic")
     ent.addProperty("model", "models/gen_fem_1.vmdl")
+    return True
+
+def buildKnight(actor, ent):
+    if actor["Class"] != "Knightspawn":
+        return False
+    ent.addProperty("classname", "tp_ent_knight")
+    if "Limits" in actor:
+        d = transformKeyValues(actor["Limits"])
+        if "Max" in d:
+            ent.addProperty("maxBeans", int(d["Max"]))
+        if "Min" in d:
+            ent.addProperty("minBeans", int(d["Min"]))
+    if "Lives" in actor:
+        ent.addProperty("lives", int(actor["Lives"]))
     return True
     
 def buildTemplate(actor, ent):
