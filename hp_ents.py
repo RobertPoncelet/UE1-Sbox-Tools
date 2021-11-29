@@ -250,7 +250,6 @@ def buildPointEnt(actor, ent):
     return False
 
 def buildIO(actor, ent):
-    onceOnly = actor["bTriggerOnceOnly"] if "bTriggerOnceOnly" in actor else False
     if "Event" in actor:
         event = actor["Event"]
         global actors
@@ -258,9 +257,10 @@ def buildIO(actor, ent):
             if actor["Class"] in defaultIO and other["Class"] in defaultIO and "Name" in other and "Tag" in other and other["Tag"] == event:
                 thisIO = defaultIO[actor["Class"]]
                 otherIO = defaultIO[other["Class"]]
-                timesToFire = 1 if onceOnly else (thisIO.timesToFire if thisIO.timesToFire is not None else 0)
+                onceOnly = other["bTriggerOnceOnly"] if "bTriggerOnceOnly" in other else False
+                timesToFire = 1 if onceOnly else (otherIO.timesToFire if otherIO.timesToFire is not None else 0)
                 ent.addOutput(thisIO.outputName, other["Name"], otherIO.inputName, 
-                    thisIO.overrideParam, thisIO.delay, timesToFire)
+                    otherIO.overrideParam, otherIO.delay, timesToFire)
     return False # Not done yet
 
 def buildSprite(actor, ent):
