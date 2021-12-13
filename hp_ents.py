@@ -314,7 +314,7 @@ def buildLight(actor, ent):
     return True
 
 def buildChest(actor, ent):
-    if not actor["Class"].startswith("Chest"):
+    if not actor["Class"].lower().startswith("chest"):
         return False
     ent.addProperty("classname", "tp_item_chest")
     ent.addProperty("skin_str", actor["Class"][len("Chest"):])
