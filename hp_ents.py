@@ -324,7 +324,10 @@ def buildChest(actor, ent):
         if key.startswith("EjectedObjects") and "bean" in actor[key].lower():
             numBeans += 1
         if key.startswith("EjectedObjects") and "WC" in actor[key]:
-            wizardcard = actor[key][2:]
+            if actor[key].startswith("Class'"):
+                wizardcard = actor[key][6:-1]
+            else: # TODO: does this ever happen?
+                wizardcard = actor[key][2:]
     if "iNumberOfBeans" in actor:
         numBeans += int(actor["iNumberOfBeans"])
     ent.addProperty("numbeans", numBeans)
