@@ -78,7 +78,7 @@ defaultIO = {
 }
 
 defaultIOAliases = {
-    "DiffindoVines" : ["DiffindoRoots", "DiffindoWeb", "DiffindoRope64", "DiffindoRope128"],
+    "DiffindoVines" : ["DiffindoRoots", "DiffindoWeb1", "DiffindoRope64", "DiffindoRope128"],
     "Ectoplasma" : ["EctoplasmaBIG", "Ectoblob"]
 }
 
@@ -257,7 +257,8 @@ def buildIO(actor, ent):
             if actor["Class"] in defaultIO and other["Class"] in defaultIO and "Name" in other and "Tag" in other and other["Tag"] == event:
                 thisIO = defaultIO[actor["Class"]]
                 otherIO = defaultIO[other["Class"]]
-                onceOnly = other["bTriggerOnceOnly"] if "bTriggerOnceOnly" in other else False
+                onceOnly = actor["bTriggerOnceOnly"] if "bTriggerOnceOnly" in actor else False
+                onceOnly = onceOnly or (other["bTriggerOnceOnly"] if "bTriggerOnceOnly" in other else False)
                 timesToFire = 1 if onceOnly else (otherIO.timesToFire if otherIO.timesToFire is not None else 0)
                 ent.addOutput(thisIO.outputName, other["Name"], otherIO.inputName, 
                     otherIO.overrideParam, otherIO.delay, timesToFire)
@@ -374,7 +375,7 @@ def buildMover(actor, ent):
 def buildDiffindoBarrier(actor, ent):
     if (actor["Class"] != "DiffindoVines" 
         and actor["Class"] != "DiffindoRoots"
-        and actor["Class"] != "DiffindoWeb"
+        and actor["Class"] != "DiffindoWeb1"
         and "DiffindoRope" not in actor["Class"]):
         return False
     ent.addProperty("classname", "tp_ent_diffindobarrier")
