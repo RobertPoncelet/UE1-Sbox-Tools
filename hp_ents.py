@@ -333,11 +333,6 @@ def buildChest(actor, ent):
     ent.addProperty("numbeans", numBeans)
     if wizardcard: ent.addProperty("wizardcard", wizardcard)
     
-    # For some reason chests have a different rotation??
-    if "Rotation" in actor:
-        ent.addProperty("angles", rotationToAngles(actor["Rotation"]))
-    else:
-        ent.addProperty("angles", "0 180 0")
     return True
 
 def buildBean(actor, ent):
