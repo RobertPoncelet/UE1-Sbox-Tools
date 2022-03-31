@@ -1,6 +1,6 @@
 import os, glob, constants
 
-objroot = "..\\hla_addon_content" # this is a bit messy but fuck it
+fbxroot = "..\\hla_addon_content" # this is a bit messy but fuck it
 vmatroot = "..\\hla_addon_content"
 
 def brocketed(s):
@@ -14,13 +14,13 @@ def unbrocket(s, value):
     ret = s.split("<")[0] + "{}" + s.split(">")[1]
     return ret.format(value)
 
-def do_line(line, mdlname, obj, matdict):
+def do_line(line, mdlname, fbx, matdict):
     key = brocketed(line)
     fill = None
     if key is None:
         return line
     elif key == "mesh_file":
-        fill = obj.replace("\\", "/")
+        fill = fbx.replace("\\", "/")
     elif key == "mesh_name":
         fill = mdlname
     elif key == "scale":
@@ -35,52 +35,62 @@ def do_line(line, mdlname, obj, matdict):
             fill = fill + "\t\t\t\t\t\t\t},\n"
     return unbrocket(line, fill) if fill is not None else None
 
-mdlpaths = {} # Maps model path to obj
-objpaths = glob.glob(os.path.join(objroot, "**", "*.fbx"), recursive=True)
-objpaths = ["\\".join(path.split("\\")[2:]) for path in objpaths] # this is necessary because this directory is not the same as the addon content directory
-for objpath in objpaths:
-#for objpath in glob.glob(objroot + "/sm36/*.obj"):
-    mdl = os.path.basename(objpath)
-    mdl = os.path.splitext(mdl)[0]
-    if mdl[:2] == "sk":
-        mdl = mdl[2:]
-    if mdl[-4:] == "Mesh":
-        mdl = mdl[:-4]
-    mdl = os.path.join("..", "hla_addon_content", "models", (mdl + ".vmdl"))
-    mdlpaths[mdl] = objpath
+@dataclass
+class FbxMesh:
+    in_path: str
+    out_path: str
+    game: str
 
-for mdl in mdlpaths:
-    if not constants.OVERWRITE and os.path.isfile(mdl):
-        print("Not overwriting " + mdl)
-        continue
-    print("Writing " + mdl)
-
-    obj = mdlpaths[mdl]
-    mdlname = os.path.basename(mdl)[:-5]
-
-    # A bit hacky
-    prefix = "sk" if os.path.basename(obj).startswith("sk") else ""
-    mats = [prefix + mdlname + "Tex" + str(i) for i in range(10)]
-
-    vmat_glob = os.path.join(vmatroot, "*" + prefix + mdlname + "Tex*.vmat")
-    vmats = glob.glob(vmat_glob)
-    #vmats = glob.glob(os.path.join(vmatroot, "*" + mdlname + "*.vmat"), recursive=True)
-    vmats = [os.path.basename(path) for path in vmats]
-
-    # Assign them whatever, we can fix manually later
-    matdict = {}
-    if len(vmats) != 0:
-        for i in range(len(mats)):
-            matdict[mats[i]] = vmats[i%len(vmats)]
+if __name__ == "__main__":
+    in_paths = []
+    for game in constants.GAMES:
+        in_paths += glob.glob(os.path.join(constants.ROOT_PATH, game, "**", "*.fbx"), recursive=True)
+    mdlpaths = {} # Maps model path to fbx
     
-    template = open("template.vmdl")
-    mdlfile = open(mdl, "w")
-    
-    for line in template:
-        wline = do_line(line, mdlname, obj, matdict)
-        if wline is not None:
-            mdlfile.write(wline)
+    fbxpaths = ["\\".join(path.split("\\")[2:]) for path in fbxpaths] # this is necessary because this directory is not the same as the addon content directory
+    for fbxpath in fbxpaths:
+    #for fbxpath in glob.glob(fbxroot + "/sm36/*.fbx"):
+        mdl = os.path.basename(fbxpath)
+        mdl = os.path.splitext(mdl)[0]
+        if mdl[:2] == "sk":
+            mdl = mdl[2:]
+        if mdl[-4:] == "Mesh":
+            mdl = mdl[:-4]
+        mdl = os.path.join("..", "hla_addon_content", "models", (mdl + ".vmdl"))
+        mdlpaths[mdl] = fbxpath
 
-    template.close()
-    mdlfile.close()
-print("Done")
+    for mdl in mdlpaths:
+        if not constants.OVERWRITE and os.path.isfile(mdl):
+            print("Not overwriting " + mdl)
+            continue
+        print("Writing " + mdl)
+
+        fbx = mdlpaths[mdl]
+        mdlname = os.path.basename(mdl)[:-5]
+
+        # A bit hacky
+        prefix = "sk" if os.path.basename(fbx).startswith("sk") else ""
+        mats = [prefix + mdlname + "Tex" + str(i) for i in range(10)]
+
+        vmat_glob = os.path.join(vmatroot, "*" + prefix + mdlname + "Tex*.vmat")
+        vmats = glob.glob(vmat_glob)
+        #vmats = glob.glob(os.path.join(vmatroot, "*" + mdlname + "*.vmat"), recursive=True)
+        vmats = [os.path.basename(path) for path in vmats]
+
+        # Assign them whatever, we can fix manually later
+        matdict = {}
+        if len(vmats) != 0:
+            for i in range(len(mats)):
+                matdict[mats[i]] = vmats[i%len(vmats)]
+        
+        template = open("template.vmdl")
+        mdlfile = open(mdl, "w")
+        
+        for line in template:
+            wline = do_line(line, mdlname, fbx, matdict)
+            if wline is not None:
+                mdlfile.write(wline)
+
+        template.close()
+        mdlfile.close()
+    print("Done")

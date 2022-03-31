@@ -5,7 +5,6 @@ import glob
 import hammer
 import hp_ents
 import os.path
-import sys
 import multiprocessing as mp
 import datamodel as dmx
 
