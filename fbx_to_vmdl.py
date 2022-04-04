@@ -1,50 +1,45 @@
 import os, glob, constants
-
-fbxroot = "..\\hla_addon_content" # this is a bit messy but fuck it
-vmatroot = "..\\hla_addon_content"
-
-def brocketed(s):
-    if s[:4] == "<!--" or not ("<" in s and ">" in s):
-        return None
-    return (s.split("<"))[1].split(">")[0]
-
-def unbrocket(s, value):
-    if s[:4] == "<!--" or not ("<" in s and ">" in s):
-        return s
-    ret = s.split("<")[0] + "{}" + s.split(">")[1]
-    return ret.format(value)
-
-def do_line(line, mdlname, fbx, matdict):
-    key = brocketed(line)
-    fill = None
-    if key is None:
-        return line
-    elif key == "mesh_file":
-        fill = fbx.replace("\\", "/")
-    elif key == "mesh_name":
-        fill = mdlname
-    elif key == "scale":
-        fill = constants.SCALE
-    elif key == "material_remap_list":
-        fill = ""
-        for mat in matdict:
-            fill = fill + "\t\t\t\t\t\t\t{\n"
-            fill = fill + "\t\t\t\t\t\t\t\tfrom = \"{}.vmat\"\n".format(mat)
-            vmat = matdict[mat].replace("\\", "/")
-            fill = fill + "\t\t\t\t\t\t\t\tto = \"{}\"\n".format(vmat)
-            fill = fill + "\t\t\t\t\t\t\t},\n"
-    return unbrocket(line, fill) if fill is not None else None
+from dataclasses import dataclass
+from build_node import BuildNode
+import datamodel as dmx
 
 @dataclass
-class FbxMesh:
-    in_path: str
-    out_path: str
-    game: str
+class ModelBuildTreeHelper:
+    vmdl_path: str
+    psk_path: str
+    fbx_path: str = None
 
+class FbxNode(BuildNode):
+    def __init__(self, tree):
+        super().__init__(tree.fbx_path)
+    
+    @property
+    def dependencies(self):
+        return None # TODO
+
+    def regenerate_file(self):
+        pass # TODO
+
+class VmdlNode(BuildNode):
+    def __init__(self, tree):
+        super().__init__(tree.vmdl_path)
+        assert(self.filepath.startswith(constants.CONVERTED_ASSETS_PATH))
+        self._dependencies = [FbxNode(tree)] # TODO: add materials
+
+    @property
+    def dependencies(self):
+        return self._dependencies
+
+    def regenerate_file(self):
+        # TODO: create DataModel from a template, fill it with FBX/material data from dependencies, save it in our filepath
+        pass
+        
+# TODO: glob all psks, figure out an output vmdl path for each, put both in a ModelBuildTreeHelper, give it to a new VmdlNode
+# (Note: all psks should end with "Mesh.psk", but not all of them start with "sk")
 if __name__ == "__main__":
     in_paths = []
     for game in constants.GAMES:
-        in_paths += glob.glob(os.path.join(constants.ROOT_PATH, game, "**", "*.fbx"), recursive=True)
+        in_paths += glob.glob(os.path.join(constants.ORIGINAL_ASSETS_PATH, game, "**", "*.fbx"), recursive=True)
     mdlpaths = {} # Maps model path to fbx
     
     fbxpaths = ["\\".join(path.split("\\")[2:]) for path in fbxpaths] # this is necessary because this directory is not the same as the addon content directory
