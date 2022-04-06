@@ -23,8 +23,9 @@ class FbxNode(BuildNode):
 class VmdlNode(BuildNode):
     def __init__(self, tree):
         super().__init__(tree.vmdl_path)
-        #assert(self.filepath.startswith(constants.CONVERTED_ASSETS_PATH))
-        self._dependencies = [FbxNode(tree)] # TODO: add materials
+        assert(self.filepath.startswith(constants.CONVERTED_ASSETS_PATH))
+        self._dependencies = None#[FbxNode(tree)] 
+        # TODO: add materials
 
     @property
     def dependencies(self):
@@ -32,7 +33,8 @@ class VmdlNode(BuildNode):
 
     def regenerate_file(self):
         # TODO: create DataModel from a template, fill it with FBX/material data from dependencies, save it in our filepath
-        pass
+        dm = dmx.load("template_model.vmdl")
+        dm.write(self.filepath, "keyvalues2", 4)
 
 @dataclass
 class AssetPath:
@@ -79,5 +81,5 @@ if __name__ == "__main__":
     
     helpers = [ModelBuildTreeHelper(psk_to_vmdl_path(p).path(), p.path()) for p in psk_paths]
     vmdl_nodes = [VmdlNode(helper) for helper in helpers]
-    print(helpers)
+    vmdl_nodes[0].build()
     print("Done")
