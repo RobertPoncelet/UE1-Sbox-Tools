@@ -38,6 +38,22 @@ class VmdlNode(BuildNode):
         dm = dmx.load("template_model.vmdl")
         dm.write(self.filepath, "keyvalues2", 4)
 
+def path_to_assetpath(path):
+    path = os.path.realpath(path)
+    assert(path.startswith(constants.ROOT_PATH))
+    remainder = path[len(constants.ROOT_PATH):]
+    print(remainder)
+    if remainder.startswith(os.path.sep):
+        remainder = remainder[len(os.path.sep):]
+    print(remainder)
+    parts = remainder.split(os.path.sep)
+    print(parts)
+    root = os.path.join(constants.ROOT_PATH, parts[0])
+    game = parts[1]
+    asset_type = parts[2]
+    relative = os.path.sep.join(parts[3:])
+    return AssetPath(root, game, asset_type, relative)
+
 @dataclass
 class AssetPath:
     root: str
@@ -71,9 +87,18 @@ def psk_to_vmdl_path(asset_path: AssetPath):
 # (Note: all psks should end with "Mesh.psk", but not all of them start with "sk")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert UE1 PSKs to VMDLs.")
-    parser.add_argument("--psks", type=str, default="../hp*/maps/*.t3d",
+
+    root = constants.ORIGINAL_ASSETS_PATH
+    for game in constants.GAMES:
+        asset_type = constants.ORIGINAL_MODELS
+        prefix = os.path.join(root, game, asset_type)
+    
+    parser.add_argument("--psks", type=str, nargs="+", default="../hp*/maps/*.t3d",
                         help="Glob specifying which PSK files to convert.")
-    parser.add_argument("--regen-fbx", action="store_true")
+    parser.add_argument("--regen-fbx", action="store_true",
+                        help="Force regeneration of intermediate FBX files.")
+    parser.add_argument("--regen-vmdl", action="store_true",
+                        help="Force regeneration of VMDL files.")
 
     args = parser.parse_args()
 
