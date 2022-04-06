@@ -24,6 +24,7 @@ class BuildNode(object):
         else:
             file_outdated = False
         if type(self).force_regen or not file_exists or file_outdated:
+            print("Generating", str(type(self)), self.filepath)
             self.regenerate_file()
         assert(os.path.isfile(self.filepath))
         return self.mtime

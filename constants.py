@@ -13,8 +13,8 @@ ORIGINAL_ASSETS_PATH = ROOT_PATH # TODO: change to an "original_assets" folder w
 INTERMEDIATE_ASSETS_PATH = os.path.join(ROOT_PATH, "intermediate_assets")
 CONVERTED_ASSETS_PATH = os.path.join(ROOT_PATH, "tp_assets")
 
-MATERIALS_PATH = {game: os.path.join(CONVERTED_ASSETS_PATH, game, "materials") for game in GAMES}
-MODELS_PATH = {game: os.path.join(CONVERTED_ASSETS_PATH, game, "materials") for game in GAMES}
+MATERIALS_PATH = "materials"
+MODELS_PATH = "models"
 
 SCALE = 0.75
 OVERWRITE = True

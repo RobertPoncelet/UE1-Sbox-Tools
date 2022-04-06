@@ -23,7 +23,7 @@ class FbxNode(BuildNode):
 class VmdlNode(BuildNode):
     def __init__(self, tree):
         super().__init__(tree.vmdl_path)
-        assert(self.filepath.startswith(constants.CONVERTED_ASSETS_PATH))
+        #assert(self.filepath.startswith(constants.CONVERTED_ASSETS_PATH))
         self._dependencies = [FbxNode(tree)] # TODO: add materials
 
     @property
@@ -33,59 +33,48 @@ class VmdlNode(BuildNode):
     def regenerate_file(self):
         # TODO: create DataModel from a template, fill it with FBX/material data from dependencies, save it in our filepath
         pass
+
+@dataclass
+class AssetPath:
+    root: str
+    game: str
+    asset_type: str
+    relative: str
+    def path(self):
+        return os.path.join(self.root, self.game, self.asset_type, self.relative)
+
+def psk_to_vmdl_name(asset_path: AssetPath):
+    base = os.path.basename(asset_path.relative)
+    name = os.path.splitext(base)[0]
+
+    assert(name.lower().endswith("mesh"))
+    name = name[:-4]
+    if name.lower().startswith("sk"):
+        name = name[2:]
+    
+    new_relative = os.path.join(os.path.dirname(asset_path.relative), name + ".vmdl")
+    new_asset_path = AssetPath(
+        constants.CONVERTED_ASSETS_PATH, 
+        asset_path.game, 
+        constants.MODELS_PATH, 
+        new_relative)
+    return new_asset_path.path()
         
 # TODO: glob all psks, figure out an output vmdl path for each, put both in a ModelBuildTreeHelper, give it to a new VmdlNode
 # (Note: all psks should end with "Mesh.psk", but not all of them start with "sk")
 if __name__ == "__main__":
-    in_paths = []
+    psk_paths = []
+    root = constants.ORIGINAL_ASSETS_PATH
     for game in constants.GAMES:
-        in_paths += glob.glob(os.path.join(constants.ORIGINAL_ASSETS_PATH, game, "**", "*.fbx"), recursive=True)
-    mdlpaths = {} # Maps model path to fbx
+        asset_type = "raw_models_textures"
+        prefix = os.path.join(root, game, asset_type)
+        search = glob.glob(os.path.join(prefix, "**", "*.psk"), recursive=True)
+        for path in search:
+            assert(path.startswith(prefix))
+            relative = path[len(prefix):]
+            psk_paths.append(AssetPath(root, game, asset_type, relative))
     
-    fbxpaths = ["\\".join(path.split("\\")[2:]) for path in fbxpaths] # this is necessary because this directory is not the same as the addon content directory
-    for fbxpath in fbxpaths:
-    #for fbxpath in glob.glob(fbxroot + "/sm36/*.fbx"):
-        mdl = os.path.basename(fbxpath)
-        mdl = os.path.splitext(mdl)[0]
-        if mdl[:2] == "sk":
-            mdl = mdl[2:]
-        if mdl[-4:] == "Mesh":
-            mdl = mdl[:-4]
-        mdl = os.path.join("..", "hla_addon_content", "models", (mdl + ".vmdl"))
-        mdlpaths[mdl] = fbxpath
-
-    for mdl in mdlpaths:
-        if not constants.OVERWRITE and os.path.isfile(mdl):
-            print("Not overwriting " + mdl)
-            continue
-        print("Writing " + mdl)
-
-        fbx = mdlpaths[mdl]
-        mdlname = os.path.basename(mdl)[:-5]
-
-        # A bit hacky
-        prefix = "sk" if os.path.basename(fbx).startswith("sk") else ""
-        mats = [prefix + mdlname + "Tex" + str(i) for i in range(10)]
-
-        vmat_glob = os.path.join(vmatroot, "*" + prefix + mdlname + "Tex*.vmat")
-        vmats = glob.glob(vmat_glob)
-        #vmats = glob.glob(os.path.join(vmatroot, "*" + mdlname + "*.vmat"), recursive=True)
-        vmats = [os.path.basename(path) for path in vmats]
-
-        # Assign them whatever, we can fix manually later
-        matdict = {}
-        if len(vmats) != 0:
-            for i in range(len(mats)):
-                matdict[mats[i]] = vmats[i%len(vmats)]
-        
-        template = open("template.vmdl")
-        mdlfile = open(mdl, "w")
-        
-        for line in template:
-            wline = do_line(line, mdlname, fbx, matdict)
-            if wline is not None:
-                mdlfile.write(wline)
-
-        template.close()
-        mdlfile.close()
+    helpers = [ModelBuildTreeHelper(psk_to_vmdl_name(p), p.path()) for p in psk_paths]
+    vmdl_nodes = [VmdlNode(helper) for helper in helpers]
+    print(helpers)
     print("Done")
