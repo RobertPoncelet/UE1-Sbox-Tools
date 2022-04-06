@@ -1,6 +1,8 @@
-import os, glob, constants
+import argparse, glob, os
 from dataclasses import dataclass
+
 from build_node import BuildNode
+import constants
 import datamodel as dmx
 
 @dataclass
@@ -68,6 +70,13 @@ def psk_to_vmdl_path(asset_path: AssetPath):
 # TODO: glob all psks, figure out an output vmdl path for each, put both in a ModelBuildTreeHelper, give it to a new VmdlNode
 # (Note: all psks should end with "Mesh.psk", but not all of them start with "sk")
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Convert UE1 PSKs to VMDLs.")
+    parser.add_argument("--psks", type=str, default="../hp*/maps/*.t3d",
+                        help="Glob specifying which PSK files to convert.")
+    parser.add_argument("--regen-fbx", action="store_true")
+
+    args = parser.parse_args()
+
     psk_paths = []
     root = constants.ORIGINAL_ASSETS_PATH
     for game in constants.GAMES:
