@@ -13,8 +13,11 @@ ORIGINAL_ASSETS_PATH = ROOT_PATH # TODO: change to an "original_assets" folder w
 INTERMEDIATE_ASSETS_PATH = os.path.join(ROOT_PATH, "intermediate_assets")
 CONVERTED_ASSETS_PATH = os.path.join(ROOT_PATH, "tp_assets")
 
-MATERIALS_PATH = "materials"
-MODELS_PATH = "models"
+ORIGINAL_MATERIALS = "raw_models_textures"
+ORIGINAL_MODELS = "raw_models_textures"
+
+CONVERTED_MATERIALS = "materials"
+CONVERTED_MODELS = "models"
 
 SCALE = 0.75
 OVERWRITE = True

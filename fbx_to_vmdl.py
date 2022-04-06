@@ -41,9 +41,12 @@ class AssetPath:
     asset_type: str
     relative: str
     def path(self):
-        return os.path.join(self.root, self.game, self.asset_type, self.relative)
+        # TODO: Why doesn't os.path.join work here???
+        ret = os.path.sep.join([self.root, self.game, self.asset_type, self.relative])
+        ret = os.path.realpath(ret)
+        return ret
 
-def psk_to_vmdl_name(asset_path: AssetPath):
+def psk_to_vmdl_path(asset_path: AssetPath):
     base = os.path.basename(asset_path.relative)
     name = os.path.splitext(base)[0]
 
@@ -56,9 +59,9 @@ def psk_to_vmdl_name(asset_path: AssetPath):
     new_asset_path = AssetPath(
         constants.CONVERTED_ASSETS_PATH, 
         asset_path.game, 
-        constants.MODELS_PATH, 
+        constants.CONVERTED_MODELS, 
         new_relative)
-    return new_asset_path.path()
+    return new_asset_path
         
 # TODO: glob all psks, figure out an output vmdl path for each, put both in a ModelBuildTreeHelper, give it to a new VmdlNode
 # (Note: all psks should end with "Mesh.psk", but not all of them start with "sk")
@@ -66,7 +69,7 @@ if __name__ == "__main__":
     psk_paths = []
     root = constants.ORIGINAL_ASSETS_PATH
     for game in constants.GAMES:
-        asset_type = "raw_models_textures"
+        asset_type = constants.ORIGINAL_MODELS
         prefix = os.path.join(root, game, asset_type)
         search = glob.glob(os.path.join(prefix, "**", "*.psk"), recursive=True)
         for path in search:
@@ -74,7 +77,7 @@ if __name__ == "__main__":
             relative = path[len(prefix):]
             psk_paths.append(AssetPath(root, game, asset_type, relative))
     
-    helpers = [ModelBuildTreeHelper(psk_to_vmdl_name(p), p.path()) for p in psk_paths]
+    helpers = [ModelBuildTreeHelper(psk_to_vmdl_path(p).path(), p.path()) for p in psk_paths]
     vmdl_nodes = [VmdlNode(helper) for helper in helpers]
     print(helpers)
     print("Done")
