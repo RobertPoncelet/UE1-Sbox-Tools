@@ -1,3 +1,4 @@
+import asset
 import constants
 import glob
 import os
@@ -69,7 +70,7 @@ def convertMapFile(game, path):
         os.chdir(cwd)
 
         # Copy it from $GAME/maps to hla_addon_content/models
-        copy_path = os.path.join(constants.ROOT_PATH, ("hla_addon_content\\models\\movers" if is_mover else "hla_addon_content\\models"))
+        copy_path = os.path.join(asset.REPO_DIR, ("hla_addon_content\\models\\movers" if is_mover else "hla_addon_content\\models"))
         copy_path = os.path.join(copy_path, os.path.basename(out_map_path))
         print("Copying " + out_map_path + " to " + copy_path)
         copyfile(out_map_path, copy_path)
@@ -131,7 +132,7 @@ def writeMovers(map_path):
                 mover_name = None
 
 if __name__ == "__main__":
-    for game in constants.GAMES:
+    for game in asset.GAMES:
         glob_path = os.path.join("..", game, "maps", "*.t3d")
         maps = glob.glob(glob_path, recursive=True)
         

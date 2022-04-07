@@ -2,7 +2,7 @@ import argparse, glob, os
 from dataclasses import dataclass
 
 from build_node import BuildNode
-import constants
+import asset
 import datamodel as dmx
 
 @dataclass
@@ -25,7 +25,7 @@ class FbxNode(BuildNode):
 class VmdlNode(BuildNode):
     def __init__(self, tree):
         super().__init__(tree.vmdl_path)
-        assert(self.filepath.startswith(constants.CONVERTED_ASSETS_PATH))
+        assert(self.filepath.startswith(asset.CONVERTED_ASSETS_PATH))
         self._dependencies = None#[FbxNode(tree)] 
         # TODO: add materials
 
@@ -40,31 +40,19 @@ class VmdlNode(BuildNode):
 
 def path_to_assetpath(path):
     path = os.path.realpath(path)
-    assert(path.startswith(constants.ROOT_PATH))
-    remainder = path[len(constants.ROOT_PATH):]
+    assert(path.startswith(asset.REPO_DIR))
+    remainder = path[len(asset.REPO_DIR):]
     print(remainder)
     if remainder.startswith(os.path.sep):
         remainder = remainder[len(os.path.sep):]
     print(remainder)
     parts = remainder.split(os.path.sep)
     print(parts)
-    root = os.path.join(constants.ROOT_PATH, parts[0])
+    root = os.path.join(asset.REPO_DIR, parts[0])
     game = parts[1]
     asset_type = parts[2]
     relative = os.path.sep.join(parts[3:])
     return AssetPath(root, game, asset_type, relative)
-
-@dataclass
-class AssetPath:
-    root: str
-    game: str
-    asset_type: str
-    relative: str
-    def path(self):
-        # TODO: Why doesn't os.path.join work here???
-        ret = os.path.sep.join([self.root, self.game, self.asset_type, self.relative])
-        ret = os.path.realpath(ret)
-        return ret
 
 def psk_to_vmdl_path(asset_path: AssetPath):
     base = os.path.basename(asset_path.relative)
@@ -77,9 +65,9 @@ def psk_to_vmdl_path(asset_path: AssetPath):
     
     new_relative = os.path.join(os.path.dirname(asset_path.relative), name + ".vmdl")
     new_asset_path = AssetPath(
-        constants.CONVERTED_ASSETS_PATH, 
+        asset.CONVERTED_ASSETS_PATH, 
         asset_path.game, 
-        constants.CONVERTED_MODELS, 
+        asset.CONVERTED_MODELS, 
         new_relative)
     return new_asset_path
         
@@ -88,9 +76,9 @@ def psk_to_vmdl_path(asset_path: AssetPath):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert UE1 PSKs to VMDLs.")
 
-    root = constants.ORIGINAL_ASSETS_PATH
-    for game in constants.GAMES:
-        asset_type = constants.ORIGINAL_MODELS
+    root = asset.ORIGINAL_ASSETS_PATH
+    for game in asset.GAMES:
+        asset_type = asset.ORIGINAL_MODELS
         prefix = os.path.join(root, game, asset_type)
     
     parser.add_argument("--psks", type=str, nargs="+", default="../hp*/maps/*.t3d",
@@ -103,9 +91,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     psk_paths = []
-    root = constants.ORIGINAL_ASSETS_PATH
-    for game in constants.GAMES:
-        asset_type = constants.ORIGINAL_MODELS
+    root = asset.ORIGINAL_ASSETS_PATH
+    for game in asset.GAMES:
+        asset_type = asset.ORIGINAL_MODELS
         prefix = os.path.join(root, game, asset_type)
         search = glob.glob(os.path.join(prefix, "**", "*.psk"), recursive=True)
         for path in search:

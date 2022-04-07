@@ -28,7 +28,7 @@ def convertMapFile(path, format, test):
         return
 
     # Copy it from $GAME/maps to hla_addon_content/maps
-    copy_path = "..\\hla_addon_content\\maps" #os.path.join(constants.ROOT_PATH, "hla_addon_content\\maps")
+    copy_path = "..\\hla_addon_content\\maps" #os.path.join(asset.REPO_DIR, "hla_addon_content\\maps")
     copy_path = os.path.join(copy_path, os.path.basename(out_path))
     copyfile(out_path, copy_path)
     print("Finished copying " + out_path + " to " + copy_path)

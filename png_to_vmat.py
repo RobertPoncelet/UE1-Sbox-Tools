@@ -59,7 +59,7 @@ def do_line(line, textures):
         return line
     elif key == "enum_indirect":
         temp = get_tex_by_type(textures, "ao")
-        fill = "2" if type(temp) is str and constants.HLA_TEXTURES_ROOT in temp else None
+        fill = "2" if type(temp) is str and asset.HLA_TEXTURES_ROOT in temp else None
     elif key == "bool_metalness":
         fill = "1" if get_tex_by_type(textures, "metal") is not None else None
     elif key == "bool_specular":
@@ -88,7 +88,7 @@ def do_line(line, textures):
     return unbrocket(line, fill) if fill is not None else None
 
 matpaths = {} # Maps material path to a list of its textures
-texpaths = glob.glob(os.path.join(constants.HLA_TEXTURES_ROOT, "*.png"), recursive=True)
+texpaths = glob.glob(os.path.join(asset.HLA_TEXTURES_ROOT, "*.png"), recursive=True)
 #texpaths = texpaths[:10] # remove to do all textures
 for texpath in texpaths:
     texpath = os.path.basename(texpath)

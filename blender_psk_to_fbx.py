@@ -1,15 +1,15 @@
 import bpy
-#import constants
+#import asset
 import glob
 import os
 import io_import_scene_unreal_psa_psk_280 as psk
 
-ROOT_PATH = "F:/Google Drive/hp_resources"
+REPO_DIR = "F:/Google Drive/hp_resources"
 #GAMES = ["hp1", "hp2"]
 GAMES = ["hp2"]
 
 for game in GAMES:
-    glob_path = os.path.join(ROOT_PATH, game, "raw_models_textures", "**", "*.psk")
+    glob_path = os.path.join(REPO_DIR, game, "raw_models_textures", "**", "*.psk")
     #psks = glob.glob(glob_path, recursive=True)
     #psks = psks[:1] # remove for all psks
     psks = ["F:\\Google Drive\\hp_resources\\hp2\\raw_models_textures\\HPModels\\skwoodchestmesh.psk"]
@@ -25,7 +25,7 @@ for game in GAMES:
         bpy.data.objects[model_name + ".mo"].data.auto_smooth_angle = 1.40499
         
         # Do animations
-        psa_path = os.path.join(ROOT_PATH, game, "raw_animations", os.path.basename(psk_path))
+        psa_path = os.path.join(REPO_DIR, game, "raw_animations", os.path.basename(psk_path))
         psa_path = os.path.splitext(psa_path)[0]
         assert(psa_path[-4:] == "Mesh")
         psa_path = psa_path[:-4] + "Anims.psa"
@@ -41,7 +41,7 @@ for game in GAMES:
         model_name += ".fbx"
         # This bit's a bit hacky - it assumes all models will be found in 1 folder deeper than the raw_models_textures folder
         subfolder = psk_path.split(os.path.sep)[-2]
-        out_path = os.path.join(ROOT_PATH, game, "fbx", subfolder, model_name)
+        out_path = os.path.join(REPO_DIR, game, "fbx", subfolder, model_name)
         
         if not os.path.isdir(os.path.dirname(out_path)):
             os.makedirs(os.path.dirname(out_path))

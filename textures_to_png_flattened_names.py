@@ -1,9 +1,9 @@
-import constants
+import asset
 import glob
 import os
 from PIL import Image
 
-for game in constants.GAME_PATHS:
+for game in asset.GAME_PATHS:
     glob_path = os.path.join(game, "raw_models_textures", "**", "*.tga")
     textures = glob.glob(glob_path, recursive=True)
     for tex_path in textures:
