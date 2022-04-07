@@ -7,13 +7,13 @@ import datamodel as dmx
 
 @dataclass
 class ModelBuildTreeHelper:
-    vmdl_path: str
-    psk_path: str
-    fbx_path: str = None
+    vmdl: asset.AssetDescription
+    psk: asset.AssetDescription
+    fbx: asset.AssetDescription = None
 
 class FbxNode(BuildNode):
     def __init__(self, tree):
-        super().__init__(tree.fbx_path)
+        super().__init__(tree.fbx)
     
     @property
     def dependencies(self):
@@ -24,8 +24,7 @@ class FbxNode(BuildNode):
 
 class VmdlNode(BuildNode):
     def __init__(self, tree):
-        super().__init__(tree.vmdl_path)
-        assert(self.filepath.startswith(asset.CONVERTED_ASSETS_PATH))
+        super().__init__(tree.vmdl)
         self._dependencies = None#[FbxNode(tree)] 
         # TODO: add materials
 
@@ -52,9 +51,9 @@ def path_to_assetpath(path):
     game = parts[1]
     asset_type = parts[2]
     relative = os.path.sep.join(parts[3:])
-    return AssetPath(root, game, asset_type, relative)
+    return asset.AssetDescription(root, game, asset_type, relative)
 
-def psk_to_vmdl_path(asset_path: AssetPath):
+def psk_to_vmdl_path(asset_path: asset.AssetDescription):
     base = os.path.basename(asset_path.relative)
     name = os.path.splitext(base)[0]
 
@@ -64,7 +63,7 @@ def psk_to_vmdl_path(asset_path: AssetPath):
         name = name[2:]
     
     new_relative = os.path.join(os.path.dirname(asset_path.relative), name + ".vmdl")
-    new_asset_path = AssetPath(
+    new_asset_path = asset.AssetDescription(
         asset.CONVERTED_ASSETS_PATH, 
         asset_path.game, 
         asset.CONVERTED_MODELS, 

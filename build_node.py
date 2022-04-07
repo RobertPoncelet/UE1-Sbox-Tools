@@ -1,14 +1,16 @@
 import os
 
+import asset
+
 class BuildNode(object):
     force_regen = False
 
-    def __init__(self, filepath):
-        self._filepath = filepath
+    def __init__(self, asset_desc: asset.AssetDescription):
+        self._asset = asset_desc
 
     @property
     def filepath(self):
-        return self._filepath
+        return self._asset.path()
 
     @property
     def mtime(self):
