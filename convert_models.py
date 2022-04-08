@@ -34,7 +34,29 @@ class VmdlNode(BuildNode):
 
     def regenerate_file(self):
         # TODO: create DataModel from a template, fill it with FBX/material data from dependencies, save it in our filepath
-        dm = dmx.load("template_model.vmdl")
+        dm = dmx.DataModel("modeldoc", "29")
+        root = dm.add_element(None, "RootNode")
+        root["children"] = dmx.make_array(None, dmx.Element)
+
+        mats = dm.add_element(None, "MaterialGroupList")
+        mats["children"] = dmx.make_array(None, dmx.Element)
+        default_mat_grp = dm.add_element(None, "DefaultMaterialGroup")
+        default_mat_grp["remaps"] = dmx.make_array(None, dmx.Element)
+        default_mat_grp["use_global_default"] = False
+        default_mat_grp["global_default_material"] = ""
+        mats["children"].append(default_mat_grp)
+        root["children"].append(mats)
+
+        '''relayPlugData = datamodel.add_element(None, "DmePlugList")
+        relayPlugData["names"] = dmx.make_array(None, str)
+        relayPlugData["dataTypes"] = dmx.make_array(None, int)
+        relayPlugData["plugTypes"] = dmx.make_array(None, int)
+        relayPlugData["descriptions"] = dmx.make_array(None, str)
+        e["relayPlugData"] = relayPlugData
+        e["connectionsData"] = dmx.make_array(None, dmx.Element)
+        e["entity_properties"] = datamodel.add_element(None, "EditGameClassProps")
+        e["hitNormal"] = dmx.Vector3([0, 0, 1])
+        e["isProceduralEntity"] = False'''
         dm.write(self.filepath, "keyvalues2", 4)
 
 def psk_to_vmdl_desc(desc: asset.AssetDescription):

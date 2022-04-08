@@ -47,14 +47,14 @@ def _encode_binary_string(string):
 	return bytes(string,'utf-8') + bytes(1)
 
 
-global _kv2_indent
-_kv2_indent = ""
-def _add_kv2_indent():
-	global _kv2_indent
-	_kv2_indent += "\t"
-def _sub_kv2_indent():
-	global _kv2_indent
-	_kv2_indent = _kv2_indent[:-1]
+global _kv_indent
+_kv_indent = ""
+def _add_kv_indent():
+	global _kv_indent
+	_kv_indent += "\t"
+def _sub_kv_indent():
+	global _kv_indent
+	_kv_indent = _kv_indent[:-1]
 
 def _validate_array_list(iterable,array_type):
 	if not iterable: return None
@@ -93,12 +93,12 @@ def get_str(file):
 		out += b
 	return out.decode()
 
-def _get_kv2_repr(var):
+def _get_kv_repr(var, kv_version):
 	t = type(var)
 	if t == float or t == int: # optimisation: very common, so first
 		return str(var)
 	elif issubclass(t, (_Array,Matrix)):
-		return var.to_kv2()
+		return var.to_kv(kv_version)
 	elif t == Element:
 		return str(var.id)
 	elif t == bool:
@@ -120,21 +120,36 @@ class _Array(list):
 		else:
 			return super().__init__()
 		
-	def to_kv2(self):
+	def to_kv(self, kv_version):
 		if len(self) == 0:
-			return "\n{}[\n{}]".format(_kv2_indent, _kv2_indent)
+			if kv_version == 2:
+				return "\n{}[\n{}]".format(_kv_indent, _kv_indent)
+			elif kv_version == 3:
+				return "[  ]"
+			else:
+				raise ValueError("Invalid keyvalues version: {}".format(kv_version))
 		if self.type == Element:
 
-			out = "\n{}[\n".format(_kv2_indent)
-			_add_kv2_indent()
-			out += _kv2_indent
+			out = "\n{}[\n".format(_kv_indent)
+			_add_kv_indent()
+			out += _kv_indent
 
-			out += ",\n{}".format(_kv2_indent).join([item.get_kv2() if item and item._users == 1 else "\"element\" {}".format(_quote(item.id if item else "")) for item in self])
+			if kv_version == 2:
+				out += ",\n{}".format(_kv_indent).join([item.get_kv2() if item and item._users == 1 else "\"element\" {}".format(_quote(item.id if item else "")) for item in self])
+			elif kv_version == 3:
+				out += ",\n{}".format(_kv_indent).join([item.get_kv3() for item in self])
+			else:
+				raise ValueError("Invalid keyvalues version: {}".format(kv_version))
 
-			_sub_kv2_indent()
-			return "{}\n{}]".format(out,_kv2_indent)
+			_sub_kv_indent()
+			return "{}\n{}]".format(out,_kv_indent)
 		else:
-			return "[{}]".format(", ".join([_quote(_get_kv2_repr(item)) for item in self]))
+			if kv_version == 2:
+				return "[{}]".format(", ".join([_quote(_get_kv_repr(item, 2)) for item in self]))
+			elif kv_version == 3:
+				return "[{}]".format(", ".join([_get_kv_repr(item, 3) for item in self]))
+			else:
+				raise ValueError("Invalid keyvalues version: {}".format(kv_version))
 		
 	def frombytes(self,file):
 		length = get_int(file)		
@@ -225,7 +240,7 @@ class Matrix(list):
 	def __hash__(self):
 		return hash(tuple(self))
 
-	def to_kv2(self):
+	def to_kv(self, kv_version):
 		return " ".join([str(f) for row in self for f in row])
 	def tobytes(self):
 		return struct.pack("f" * 16,*[f for row in self for f in row])
@@ -379,32 +394,32 @@ class Element(collections.OrderedDict):
 	def get_kv2(self,deep = True):
 		out = ""
 		out += _quote(self.type)
-		out += "\n" + _kv2_indent + "{\n"
-		_add_kv2_indent()
+		out += "\n" + _kv_indent + "{\n"
+		_add_kv_indent()
 		
 		def _make_attr_str(name,dm_type,value, is_array = False):
 			if value is not None:
 				if is_array:
-					return "{}\"{}\" \"{}\" {}\n".format(_kv2_indent,name,dm_type,value)
+					return "{}\"{}\" \"{}\" {}\n".format(_kv_indent,name,dm_type,value)
 				else:
-					return "{}\"{}\" \"{}\" \"{}\"\n".format(_kv2_indent,name,dm_type,value)
+					return "{}\"{}\" \"{}\" \"{}\"\n".format(_kv_indent,name,dm_type,value)
 			else:
-				return "{}\"{}\" {}\n".format(_kv2_indent,name,dm_type)
+				return "{}\"{}\" {}\n".format(_kv_indent,name,dm_type)
 		
 		out += _make_attr_str("id", "elementid", self.id)
 		if self.name is not None:
 			out += _make_attr_str("name", "string", self.name)
-		
+
 		for name in self:
 			attr = self[name]
 			if attr == None:
 				out += _make_attr_str(name, "element", "")
 				continue
-			
+
 			t = type(attr)
-			
+
 			if t == Element and attr._users < 2 and deep:
-				out += _kv2_indent
+				out += _kv_indent
 				out += _quote(name)
 				out += " {}".format( attr.get_kv2() )
 				out += "\n"
@@ -417,9 +432,40 @@ class Element(collections.OrderedDict):
 				else:
 					type_str = _dmxtypes_str[_dmxtypes.index(t)]
 				
-				out += _make_attr_str(name, type_str, _get_kv2_repr(attr), issubclass(t,_Array))
-		_sub_kv2_indent()
-		out += _kv2_indent + "}\n"
+				out += _make_attr_str(name, type_str, _get_kv_repr(attr, 2), issubclass(t,_Array))
+		_sub_kv_indent()
+		out += _kv_indent + "}\n"
+		return out
+
+	def get_kv3(self,deep = True):
+		out = ""
+		out += "\n" + _kv_indent + "{\n"
+		_add_kv_indent()
+
+		def _make_attr_str(name, value, is_str=False):
+			if value is not None:
+				if is_str:
+					value = _quote(value)
+				return _kv_indent + name + " = " + value + "\n"
+			else:
+				return ""
+
+		out += _make_attr_str("_class", self.type, True)
+
+		for name in self:
+			attr = self[name]
+			if attr == None:
+				#out += _make_attr_str(name, "")
+				continue
+
+			t = type(attr)
+
+			if t == Element and attr._users < 2 and deep:
+				out += attr.get_kv3()
+			else:
+				out += _make_attr_str(name, _get_kv_repr(attr, 3), t is str)
+		_sub_kv_indent()
+		out += _kv_indent + "}\n"
 		return out
 
 	def tobytes(self):
@@ -756,10 +802,10 @@ class DataModel:
 
 			for elem in self.elem_chain: del elem._index
 		elif self.encoding == 'keyvalues2':
-			self.out.write(self.root.get_kv2() + "\n\n")
+			self.out.write(self.root.get_kv3() + "\n\n")
 			for elem in out_elems:
 				if elem._users > 1:
-					self.out.write(elem.get_kv2() + "\n\n")
+					self.out.write(elem.get_kv3() + "\n\n")
 				
 		self._string_dict = None
 		return self.out.getvalue()
