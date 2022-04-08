@@ -1,4 +1,4 @@
-import argparse, glob, os
+import argparse, glob
 from dataclasses import dataclass
 
 from build_node import BuildNode
@@ -37,50 +37,27 @@ class VmdlNode(BuildNode):
         dm = dmx.load("template_model.vmdl")
         dm.write(self.filepath, "keyvalues2", 4)
 
-def path_to_assetpath(path):
-    path = os.path.realpath(path)
-    assert(path.startswith(asset.REPO_DIR))
-    remainder = path[len(asset.REPO_DIR):]
-    print(remainder)
-    if remainder.startswith(os.path.sep):
-        remainder = remainder[len(os.path.sep):]
-    print(remainder)
-    parts = remainder.split(os.path.sep)
-    print(parts)
-    root = os.path.join(asset.REPO_DIR, parts[0])
-    game = parts[1]
-    asset_type = parts[2]
-    relative = os.path.sep.join(parts[3:])
-    return asset.AssetDescription(root, game, asset_type, relative)
+def psk_to_vmdl_desc(desc: asset.AssetDescription):
+    assert(desc.name.lower().endswith("mesh"))
+    new_name = desc.name[:-4]
+    if new_name.lower().startswith("sk"):
+        new_name = new_name[2:]
 
-def psk_to_vmdl_path(asset_path: asset.AssetDescription):
-    base = os.path.basename(asset_path.relative)
-    name = os.path.splitext(base)[0]
-
-    assert(name.lower().endswith("mesh"))
-    name = name[:-4]
-    if name.lower().startswith("sk"):
-        name = name[2:]
-    
-    new_relative = os.path.join(os.path.dirname(asset_path.relative), name + ".vmdl")
-    new_asset_path = asset.AssetDescription(
-        asset.CONVERTED_ASSETS_PATH, 
-        asset_path.game, 
-        asset.CONVERTED_MODELS, 
-        new_relative)
-    return new_asset_path
+    return asset.AssetDescription(
+        "converted",
+        desc.game,
+        desc.category,
+        desc.subfolder,
+        new_name,
+        "vmdl"
+    )
         
 # TODO: glob all psks, figure out an output vmdl path for each, put both in a ModelBuildTreeHelper, give it to a new VmdlNode
 # (Note: all psks should end with "Mesh.psk", but not all of them start with "sk")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert UE1 PSKs to VMDLs.")
 
-    root = asset.ORIGINAL_ASSETS_PATH
-    for game in asset.GAMES:
-        asset_type = asset.ORIGINAL_MODELS
-        prefix = os.path.join(root, game, asset_type)
-    
-    parser.add_argument("--psks", type=str, nargs="+", default="../hp*/maps/*.t3d",
+    parser.add_argument("--psks", type=str, nargs="+", default=None,
                         help="Glob specifying which PSK files to convert.")
     parser.add_argument("--regen-fbx", action="store_true",
                         help="Force regeneration of intermediate FBX files.")
@@ -89,18 +66,25 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    psk_paths = []
-    root = asset.ORIGINAL_ASSETS_PATH
-    for game in asset.GAMES:
-        asset_type = asset.ORIGINAL_MODELS
-        prefix = os.path.join(root, game, asset_type)
-        search = glob.glob(os.path.join(prefix, "**", "*.psk"), recursive=True)
-        for path in search:
-            assert(path.startswith(prefix))
-            relative = path[len(prefix):]
-            psk_paths.append(AssetPath(root, game, asset_type, relative))
+    if args.regen_fbx:
+        FbxNode.force_regen = True
+    if args.regen_vmdl:
+        VmdlNode.force_regen = True
+
+    if args.psks:
+        psk_descs = [asset.AssetDescription.from_path(path)
+            for pattern in args.psks for path in glob.glob(pattern)]
+    else:
+        all_psks = asset.AssetDescription("original", "*", "model", "**", "*", "psk")
+        psk_descs = [asset.AssetDescription.from_path(path)
+            for path in all_psks.glob()]
+
+    # from_path() can't currently tell the difference between original materials and models :(
+    # TODO: maybe change the file structure to fix this
+    for desc in psk_descs:
+        desc.category = "model"
     
-    helpers = [ModelBuildTreeHelper(psk_to_vmdl_path(p).path(), p.path()) for p in psk_paths]
+    helpers = [ModelBuildTreeHelper(psk_to_vmdl_desc(p), p) for p in psk_descs]
     vmdl_nodes = [VmdlNode(helper) for helper in helpers]
     vmdl_nodes[0].build()
     print("Done")

@@ -1,4 +1,4 @@
-import os, platform
+import glob, os, platform
 from dataclasses import dataclass
 
 if platform.node().startswith("LAPTOP"):
@@ -73,12 +73,13 @@ class AssetDescription:
         _filetype = _filetype[1:]
         return AssetDescription(_stage, _game, _category, _subfolder, _name, _filetype)
 
-    def path(self):
+    def path(self, allow_wildcard=False):
         assert(self.stage in STAGES)
-        assert(self.game in GAMES)
-        assert(self.category in CATEGORY_DICT[self.stage])
+        assert(self.game in GAMES or (allow_wildcard and self.game == "*"))
+        assert(self.category in CATEGORY_DICT[self.stage] 
+            or (allow_wildcard and self.category == "*"))
         root = ROOT_DICT[self.stage]
-        category = CATEGORY_DICT[self.stage][self.category]
+        category = "*" if self.category == "*" else CATEGORY_DICT[self.stage][self.category]
         # TODO: Why doesn't os.path.join work here???
         ret = os.path.sep.join([
             REPO_DIR,
@@ -90,3 +91,6 @@ class AssetDescription:
         ])
         ret = os.path.realpath(ret)
         return ret
+
+    def glob(self):
+        return glob.glob(self.path(allow_wildcard=True), recursive=True)
