@@ -99,10 +99,15 @@ def _get_kv_repr(var, kv_version):
 		return str(var)
 	elif issubclass(t, (_Array,Matrix)):
 		return var.to_kv(kv_version)
+	elif issubclass(t, list) and kv_version == 3:
+		return str(list(var))
 	elif t == Element:
 		return str(var.id)
 	elif t == bool:
-		return "1" if var else "0"
+		if kv_version == 2:
+			return "1" if var else "0"
+		else:
+			return str(var).lower()
 	elif t == Binary:
 		return binascii.hexlify(var).decode('ASCII')
 	elif var == None:
@@ -121,13 +126,14 @@ class _Array(list):
 			return super().__init__()
 		
 	def to_kv(self, kv_version):
+		if kv_version != 2 and kv_version != 3:
+			raise ValueError("Invalid keyvalues version: {}".format(kv_version))
+
 		if len(self) == 0:
 			if kv_version == 2:
 				return "\n{}[\n{}]".format(_kv_indent, _kv_indent)
 			elif kv_version == 3:
 				return "[  ]"
-			else:
-				raise ValueError("Invalid keyvalues version: {}".format(kv_version))
 		if self.type == Element:
 			out = "\n{}[".format(_kv_indent)
 			if kv_version == 2: out += "\n"
@@ -137,24 +143,18 @@ class _Array(list):
 			if kv_version == 2:
 				out += ",\n{}".format(_kv_indent).join([item.get_kv2() if item and item._users == 1 else "\"element\" {}".format(_quote(item.id if item else "")) for item in self])
 			elif kv_version == 3:
-				out += ",\n{}".format(_kv_indent).join([item.get_kv3() for item in self])
-			else:
-				raise ValueError("Invalid keyvalues version: {}".format(kv_version))
+				out += "{},".format(_kv_indent).join([item.get_kv3() for item in self])
 
 			_sub_kv_indent()
 			if kv_version == 2:
 				return "{}\n{}]".format(out,_kv_indent)
 			elif kv_version == 3:
 				return "{}{}]".format(out,_kv_indent)
-			else:
-				raise ValueError("Invalid keyvalues version: {}".format(kv_version))
 		else:
 			if kv_version == 2:
 				return "[{}]".format(", ".join([_quote(_get_kv_repr(item, 2)) for item in self]))
 			elif kv_version == 3:
 				return "[{}]".format(", ".join([_get_kv_repr(item, 3) for item in self]))
-			else:
-				raise ValueError("Invalid keyvalues version: {}".format(kv_version))
 		
 	def frombytes(self,file):
 		length = get_int(file)		
@@ -455,7 +455,8 @@ class Element(collections.OrderedDict):
 			else:
 				return ""
 
-		out += _make_attr_str("_class", self.type, True)
+		if self.type != "DmElement":
+			out += _make_attr_str("_class", self.type, True)
 
 		for name in self:
 			attr = self[name]
@@ -466,7 +467,7 @@ class Element(collections.OrderedDict):
 			t = type(attr)
 
 			if t == Element and attr._users < 2 and deep:
-				out += attr.get_kv3()
+				out += _make_attr_str(name, attr.get_kv3())
 			else:
 				out += _make_attr_str(name, _get_kv_repr(attr, 3), t is str)
 		_sub_kv_indent()

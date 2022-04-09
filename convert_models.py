@@ -35,6 +35,8 @@ class VmdlNode(BuildNode):
     def regenerate_file(self):
         # TODO: create DataModel from a template, fill it with FBX/material data from dependencies, save it in our filepath
         dm = dmx.DataModel("modeldoc", "29")
+        meta_root = dm.add_element(None)
+
         root = dm.add_element(None, "RootNode")
         root["children"] = dmx.make_array(None, dmx.Element)
 
@@ -51,6 +53,8 @@ class VmdlNode(BuildNode):
         mesh_list["children"] = dmx.make_array(None, dmx.Element)
         mesh_file = dm.add_element(None, "RenderMeshFile")
         mesh_file["filename"] = "hp2/models/hpmodels/dumbleshit.fbx"
+        mesh_file["import_translation"] = dmx.Vector3([0, 0, 0])
+        mesh_file["import_rotation"] = dmx.Vector3([0, 0, 0])
         mesh_file["import_scale"] = constants.SCALE
         import_filter = dm.add_element(None)
         import_filter["exclude_by_default"] = False
@@ -58,6 +62,8 @@ class VmdlNode(BuildNode):
         mesh_file["import_filter"] = import_filter
         mesh_list["children"].append(mesh_file)
         root["children"].append(mesh_list)
+
+        meta_root["rootNode"] = root
         
 
         '''relayPlugData = datamodel.add_element(None, "DmePlugList")
