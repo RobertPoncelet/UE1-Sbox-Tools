@@ -2,7 +2,7 @@ import argparse, glob
 from dataclasses import dataclass
 
 from build_node import BuildNode
-import asset
+import asset, constants
 import datamodel as dmx
 
 @dataclass
@@ -47,6 +47,19 @@ class VmdlNode(BuildNode):
         mats["children"].append(default_mat_grp)
         root["children"].append(mats)
 
+        mesh_list = dm.add_element(None, "RenderMeshList")
+        mesh_list["children"] = dmx.make_array(None, dmx.Element)
+        mesh_file = dm.add_element(None, "RenderMeshFile")
+        mesh_file["filename"] = "hp2/models/hpmodels/dumbleshit.fbx"
+        mesh_file["import_scale"] = constants.SCALE
+        import_filter = dm.add_element(None)
+        import_filter["exclude_by_default"] = False
+        import_filter["exception_list"] = dmx.make_array(None, dmx.Element)
+        mesh_file["import_filter"] = import_filter
+        mesh_list["children"].append(mesh_file)
+        root["children"].append(mesh_list)
+        
+
         '''relayPlugData = datamodel.add_element(None, "DmePlugList")
         relayPlugData["names"] = dmx.make_array(None, str)
         relayPlugData["dataTypes"] = dmx.make_array(None, int)
@@ -57,7 +70,7 @@ class VmdlNode(BuildNode):
         e["entity_properties"] = datamodel.add_element(None, "EditGameClassProps")
         e["hitNormal"] = dmx.Vector3([0, 0, 1])
         e["isProceduralEntity"] = False'''
-        dm.write(self.filepath, "keyvalues2", 4)
+        dm.write(self.filepath, "keyvalues3", 1)
 
 def psk_to_vmdl_desc(desc: asset.AssetDescription):
     assert(desc.name.lower().endswith("mesh"))

@@ -34,7 +34,7 @@ shortsize = calcsize("H")
 floatsize = calcsize("f")
 
 def list_support():
-	return { 'binary':[1,2,3,4,5,9], 'keyvalues2':[1,2,3,4],'binary_proto':[2] }
+	return { 'binary':[1,2,3,4,5,9], 'keyvalues2':[1,2,3,4], 'keyvalues3':[1], 'binary_proto':[2] }
 
 def check_support(encoding,encoding_ver):
 	versions = list_support().get(encoding)
@@ -129,10 +129,10 @@ class _Array(list):
 			else:
 				raise ValueError("Invalid keyvalues version: {}".format(kv_version))
 		if self.type == Element:
-
-			out = "\n{}[\n".format(_kv_indent)
+			out = "\n{}[".format(_kv_indent)
+			if kv_version == 2: out += "\n"
 			_add_kv_indent()
-			out += _kv_indent
+			#out += _kv_indent
 
 			if kv_version == 2:
 				out += ",\n{}".format(_kv_indent).join([item.get_kv2() if item and item._users == 1 else "\"element\" {}".format(_quote(item.id if item else "")) for item in self])
@@ -142,7 +142,12 @@ class _Array(list):
 				raise ValueError("Invalid keyvalues version: {}".format(kv_version))
 
 			_sub_kv_indent()
-			return "{}\n{}]".format(out,_kv_indent)
+			if kv_version == 2:
+				return "{}\n{}]".format(out,_kv_indent)
+			elif kv_version == 3:
+				return "{}{}]".format(out,_kv_indent)
+			else:
+				raise ValueError("Invalid keyvalues version: {}".format(kv_version))
 		else:
 			if kv_version == 2:
 				return "[{}]".format(", ".join([_quote(_get_kv_repr(item, 2)) for item in self]))
@@ -514,14 +519,14 @@ def _get_dmx_id_type(encoding,version,id):
 			if id >= 32: # array
 				return eval("_" + attr_list_v3[id-32].__name__.capitalize() + "Array")
 			return attr_list_v3[id]
-	if encoding == "keyvalues2":
+	if encoding in ["keyvalues2", "keyvalues3"]:
 		return _dmxtypes[ _dmxtypes_str.index(id) ]
 				
 	raise ValueError("Type ID {} invalid in {} {}".format(id,encoding,version))
 	
 def _get_dmx_type_id(encoding,version,t):	
 	if t == type(None): t = Element
-	if encoding == "keyvalues2": raise ValueError("Type IDs do not exist in KeyValues2")
+	if encoding in ["keyvalues2", "keyvalues3"]: raise ValueError("Type IDs do not exist in KeyValues2/3")
 	try:
 		if encoding == "binary":
 			if version in [1,2]:
@@ -759,6 +764,8 @@ class DataModel:
 				self.out.write( _encode_binary_string(header + "\n") )
 			elif self.encoding == 'keyvalues2':
 				self.out.write(header + "\n")
+			elif self.encoding == 'keyvalues3':
+				self.out.write(header)
 		
 		if encoding == 'binary':
 			if encoding_ver >= 9:
@@ -802,6 +809,11 @@ class DataModel:
 
 			for elem in self.elem_chain: del elem._index
 		elif self.encoding == 'keyvalues2':
+			self.out.write(self.root.get_kv2() + "\n\n")
+			for elem in out_elems:
+				if elem._users > 1:
+					self.out.write(elem.get_kv2() + "\n\n")
+		elif self.encoding == 'keyvalues3':
 			self.out.write(self.root.get_kv3() + "\n\n")
 			for elem in out_elems:
 				if elem._users > 1:
@@ -813,7 +825,7 @@ class DataModel:
 	def write(self,path,encoding,encoding_ver):
 		with open(path,'wb') as file:
 			dm = self.echo(encoding,encoding_ver)
-			if encoding == 'keyvalues2': dm = dm.encode('utf-8')
+			if encoding in ['keyvalues2', 'keyvalues3']: dm = dm.encode('utf-8')
 			file.write(dm)
 
 
