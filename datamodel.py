@@ -26,6 +26,8 @@ from struct import unpack,calcsize
 header_format = "<!-- dmx encoding {:s} {:d} format {:s} {:d} -->"
 header_format_regex = header_format.replace("{:d}","([0-9]+)").replace("{:s}","(\S+)")
 
+header_format_kv3 = "<!-- kv3 encoding:text:version{{{:s}}} format:{:s}:version{{{:s}}} -->"
+
 header_proto2 = "<!-- DMXVersion binary_v{:d} -->"
 header_proto2_regex = header_proto2.replace("{:d}","([0-9]+)")
 
@@ -34,7 +36,12 @@ shortsize = calcsize("H")
 floatsize = calcsize("f")
 
 def list_support():
-	return { 'binary':[1,2,3,4,5,9], 'keyvalues2':[1,2,3,4], 'keyvalues3':[1], 'binary_proto':[2] }
+	return {
+		'binary':[1,2,3,4,5,9],
+		'keyvalues2':[1,2,3,4],
+		'keyvalues3':["e21c7f3c-8a33-41c5-9977-a76d3a32aa0d"],
+		'binary_proto':[2]
+	}
 
 def check_support(encoding,encoding_ver):
 	versions = list_support().get(encoding)
@@ -617,7 +624,11 @@ class DataModel:
 	@property
 	def format_ver(self): return self.__format_ver
 	@format_ver.setter
-	def format_ver(self,value): self.__format_ver = int(value)
+	def format_ver(self,value):
+		try:
+			self.__format_ver = int(value)
+		except ValueError:
+			self.__format_ver = value
 
 	@property
 	def root(self): return self.__root
@@ -760,12 +771,14 @@ class DataModel:
 		if self.encoding == 'binary_proto':
 			self.out.write( _encode_binary_string(header_proto2.format(encoding_ver) + "\n") )
 		else:
-			header = header_format.format(encoding,encoding_ver,self.format,self.format_ver)
 			if self.encoding == 'binary':
+				header = header_format.format(encoding,encoding_ver,self.format,self.format_ver)
 				self.out.write( _encode_binary_string(header + "\n") )
 			elif self.encoding == 'keyvalues2':
+				header = header_format.format(encoding,encoding_ver,self.format,self.format_ver)
 				self.out.write(header + "\n")
 			elif self.encoding == 'keyvalues3':
+				header = header_format_kv3.format(encoding_ver,self.format,self.format_ver)
 				self.out.write(header)
 		
 		if encoding == 'binary':
