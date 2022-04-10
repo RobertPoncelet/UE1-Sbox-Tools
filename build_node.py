@@ -20,7 +20,7 @@ class BuildNode(object):
     def build(self):
         file_exists = os.path.isfile(self.filepath)
         #assert(file_exists or self.dependencies)
-        if self.dependencies:
+        if file_exists and self.dependencies:
             dep_mtime = max(dep.build() for dep in self.dependencies)
             file_outdated = dep_mtime > self.mtime
         else:
@@ -43,3 +43,9 @@ class BuildNode(object):
     # Convert dependencies to a file in the filepath
     def regenerate_file(self):
         raise NotImplementedError("Please use a subclass of BuildNode.")
+
+# Use this class for original source files which have no dependencies
+class SourceFileNode(BuildNode):
+    @property
+    def dependencies(self):
+        return None

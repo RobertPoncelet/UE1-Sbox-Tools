@@ -1,78 +1,13 @@
 import argparse, glob
 from dataclasses import dataclass
 
-from build_node import BuildNode
-import asset, constants
-import datamodel as dmx
+import asset, fbx, vmdl
 
 @dataclass
 class ModelBuildTreeHelper:
     vmdl: asset.AssetDescription
     psk: asset.AssetDescription
     fbx: asset.AssetDescription = None
-
-class FbxNode(BuildNode):
-    def __init__(self, tree):
-        super().__init__(tree.fbx)
-    
-    @property
-    def dependencies(self):
-        return None # TODO
-
-    def regenerate_file(self):
-        pass # TODO
-
-class VmdlNode(BuildNode):
-    def __init__(self, tree):
-        super().__init__(tree.vmdl)
-        self._dependencies = None#[FbxNode(tree)] 
-        # TODO: add materials
-
-    @property
-    def dependencies(self):
-        return self._dependencies
-
-    def regenerate_file(self):
-        dm = dmx.DataModel("modeldoc29", "3cec427c-1b0e-4d48-a90a-0436f33a6041")
-        meta_root = dm.add_element(None)
-
-        root = dm.add_element(None, "RootNode")
-        root["children"] = dmx.make_array(None, dmx.Element)
-
-        mats = dm.add_element(None, "MaterialGroupList")
-        mats["children"] = dmx.make_array(None, dmx.Element)
-        default_mat_grp = dm.add_element(None, "DefaultMaterialGroup")
-        default_mat_grp["remaps"] = dmx.make_array(None, dmx.Element)
-        default_mat_grp["use_global_default"] = False
-        default_mat_grp["global_default_material"] = ""
-        mats["children"].append(default_mat_grp)
-        root["children"].append(mats)
-
-        mesh_list = dm.add_element(None, "RenderMeshList")
-        mesh_list["children"] = dmx.make_array(None, dmx.Element)
-        mesh_file = dm.add_element(None, "RenderMeshFile")
-        mesh_file["filename"] = "hp2/models/hpmodels/dumbleshit.fbx"
-        mesh_file["import_translation"] = dmx.Vector3([0, 0, 0])
-        mesh_file["import_rotation"] = dmx.Vector3([0, 0, 0])
-        mesh_file["import_scale"] = constants.SCALE
-        import_filter = dm.add_element(None)
-        import_filter["exclude_by_default"] = False
-        import_filter["exception_list"] = dmx.make_array(None, dmx.Element)
-        mesh_file["import_filter"] = import_filter
-        mesh_list["children"].append(mesh_file)
-        root["children"].append(mesh_list)
-
-        anim_list = dm.add_element(None, "AnimationList")
-        anim_list["children"] = dmx.make_array(None, dmx.Element)
-        anim_file = dm.add_element("test", "AnimFile")
-        anim_file["take"] = 1
-        anim_file["source_filename"] = "hp2/models/HPModels/test.fbx"
-        anim_list["children"].append(anim_file)
-        root["children"].append(anim_list)
-
-        meta_root["rootNode"] = root
-
-        dm.write(self.filepath, "keyvalues3", "e21c7f3c-8a33-41c5-9977-a76d3a32aa0d")
 
 def psk_to_vmdl_desc(desc: asset.AssetDescription):
     assert(desc.name.lower().endswith("mesh"))
@@ -89,8 +24,6 @@ def psk_to_vmdl_desc(desc: asset.AssetDescription):
         "vmdl"
     )
         
-# TODO: glob all psks, figure out an output vmdl path for each, put both in a ModelBuildTreeHelper, give it to a new VmdlNode
-# (Note: all psks should end with "Mesh.psk", but not all of them start with "sk")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert UE1 PSKs to VMDLs.")
 
@@ -104,9 +37,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.regen_fbx:
-        FbxNode.force_regen = True
+        fbx.FbxNode.force_regen = True
     if args.regen_vmdl:
-        VmdlNode.force_regen = True
+        vmdl.VmdlNode.force_regen = True
 
     if args.psks:
         psk_descs = [asset.AssetDescription.from_path(path)
@@ -122,6 +55,6 @@ if __name__ == "__main__":
         desc.category = "model"
     
     helpers = [ModelBuildTreeHelper(psk_to_vmdl_desc(p), p) for p in psk_descs]
-    vmdl_nodes = [VmdlNode(helper) for helper in helpers]
+    vmdl_nodes = [vmdl.VmdlNode(helper) for helper in helpers]
     vmdl_nodes[0].build()
     print("Done")
