@@ -119,5 +119,5 @@ if __name__ == "__main__":
 
     maps_args = [(m, args.format, args.test) for m in maps]
 
-    with mp.Pool(processes=constants.NUM_CORES) as pool:
+    with mp.Pool(processes=None) as pool:
         pool.starmap(convertMapFile, maps_args)

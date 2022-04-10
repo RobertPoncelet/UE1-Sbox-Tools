@@ -28,9 +28,9 @@ class BuildNode(object):
     def build(self):
         file_exists = os.path.isfile(self.filepath)
         assert(file_exists or self.dependencies)
-        if file_exists and self.dependencies:
+        if self.dependencies:
             dep_mtime = max(dep.build() for dep in self.dependencies)
-            file_outdated = dep_mtime > self.mtime
+            file_outdated = not file_exists or dep_mtime > self.mtime
         else:
             file_outdated = False
         if type(self).force_regen or not file_exists or file_outdated:

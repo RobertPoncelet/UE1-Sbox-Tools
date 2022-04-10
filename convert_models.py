@@ -1,5 +1,6 @@
 import argparse, glob
 from dataclasses import dataclass
+import multiprocessing as mp
 
 import asset, fbx, vmat, vmdl
 
@@ -11,17 +12,15 @@ class ModelBuildTreeHelper:
     vmats: list[asset.AssetDescription] = None
     tgas: list[asset.AssetDescription] = None
 
-def psk_to_vmdl_desc(desc: asset.AssetDescription):
-    assert(desc.name.lower().endswith("mesh"))
-    new_name = desc.name[:-4]
-    if new_name.lower().startswith("sk"):
-        new_name = new_name[2:]
-
-    ret = desc.clone()
-    ret.stage = "converted"
-    ret.name = new_name
-    ret.filetype = "vmdl"
-    return ret
+def build_psk(helper, regen_fbx=False, regen_vmdl=False, regen_vmat=False):
+    if regen_fbx:
+        fbx.FbxNode.force_regen = True
+    if regen_vmdl:
+        vmdl.VmdlNode.force_regen = True
+    if regen_vmat:
+        vmat.VmatNode.force_regen = True
+    node = vmdl.VmdlNode(helper)
+    node.build()
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert UE1 PSKs to VMDLs.")
@@ -50,10 +49,26 @@ if __name__ == "__main__":
     else:
         all_psks = asset.AssetDescription("original", "*", "model", "**", "*", "psk")
         psk_descs = all_psks.glob()
+
+    def psk_to_vmdl_desc(psk: asset.AssetDescription):
+        assert(psk.name.lower().endswith("mesh"))
+        new_name = psk.name[:-4]
+        if new_name.lower().startswith("sk"):
+            new_name = new_name[2:]
+
+        ret = psk.clone()
+        ret.stage = "converted"
+        ret.name = new_name
+        ret.filetype = "vmdl"
+        return ret
     
     helpers = [ModelBuildTreeHelper(psk_to_vmdl_desc(p), p) for p in psk_descs]
-    print("Resolving dependencies...")
-    vmdl_nodes = [vmdl.VmdlNode(helper) for helper in helpers]
+    helpers = helpers[:10]
+
     print("="*20 + " STARTING BUILD " + "="*20)
-    vmdl_nodes[0].build()
+
+    with mp.Pool(processes=None) as pool:
+        mp_args = [(h, args.regen_fbx, args.regen_vmdl, args.regen_vmat) for h in helpers]
+        pool.starmap(build_psk, mp_args)
+
     print("Done")

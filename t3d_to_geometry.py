@@ -137,7 +137,7 @@ if __name__ == "__main__":
         maps = glob.glob(glob_path, recursive=True)
         
         if DO_MOVER_WRITE:
-            with mp.Pool(processes=constants.NUM_CORES) as pool:
+            with mp.Pool(processes=None) as pool:
                 pool.map(writeMovers, maps)
             
         # Now include all the generated movers
@@ -145,6 +145,6 @@ if __name__ == "__main__":
         maps += glob.glob(glob_path, recursive=True)
 
         args = [(game, map_path) for map_path in maps]
-        with mp.Pool(processes=constants.NUM_CORES) as pool:
+        with mp.Pool(processes=None) as pool:
             pool.starmap(convertMapFile, args)
         
