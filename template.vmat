@@ -1,14 +1,14 @@
 // THIS FILE IS AUTO-GENERATED
 
 Layer0
-{
-	shader "<shader>"
+{{
+	shader "{shader}"
 	
 	//---- Rendering ----
-	F_RENDER_BACKFACES <alpha_test>
+	F_RENDER_BACKFACES {alpha_test}
 
 	//---- Translucent ----
-	F_ALPHA_TEST <alpha_test>
+	F_ALPHA_TEST {alpha_test}
 	
 	//---- Ambient Occlusion ----
 	g_flAmbientOcclusionDirectDiffuse "0.000"
@@ -18,7 +18,7 @@ Layer0
 	//---- Color ----
 	g_flModelTintAmount "1.000"
 	g_vColorTint "[1.000000 1.000000 1.000000 0.000000]"
-	TextureColor "<tex_color>"
+	TextureColor "{tex_color}"
 
 	//---- Fade ----
 	g_flFadeExponent "1.000"
@@ -49,5 +49,5 @@ Layer0
 	//---- Translucent ----
 	g_flAlphaTestReference "0.5"
 	g_flAntiAliasedEdgeStrength "1.000"
-	TextureTranslucency "<tex_trans>"
-}
+	TextureTranslucency "{tex_trans}"
+}}

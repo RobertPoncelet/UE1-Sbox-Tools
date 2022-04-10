@@ -17,6 +17,10 @@ class BuildNode(object):
         return self._asset.path(relative_to_root=True)
 
     @property
+    def sbox_filepath(self):
+        return self.relative_filepath.replace(os.path.sep, '/')
+
+    @property
     def mtime(self):
         return os.path.getmtime(self.filepath)
 
