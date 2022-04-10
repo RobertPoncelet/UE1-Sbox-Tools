@@ -13,6 +13,10 @@ class BuildNode(object):
         return self._asset.path()
 
     @property
+    def relative_filepath(self):
+        return self._asset.path(relative_to_root=True)
+
+    @property
     def mtime(self):
         return os.path.getmtime(self.filepath)
 

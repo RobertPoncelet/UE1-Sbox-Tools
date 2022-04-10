@@ -23,7 +23,8 @@ class FbxNode(BuildNode):
                 "--python",
                 script_path,
                 "--",
-                self.dependencies[0].filepath
+                self.dependencies[0].filepath,
+                self.filepath
             ],
             stderr=subprocess.STDOUT,
             text=True)

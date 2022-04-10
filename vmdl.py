@@ -1,3 +1,4 @@
+import os
 import asset, constants
 from build_node import BuildNode
 from fbx import FbxNode
@@ -41,7 +42,9 @@ class VmdlNode(BuildNode):
         mesh_list = dm.add_element(None, "RenderMeshList")
         mesh_list["children"] = dmx.make_array(None, dmx.Element)
         mesh_file = dm.add_element(None, "RenderMeshFile")
-        mesh_file["filename"] = self.dependencies[0].filepath
+        sbox_filepath = self.dependencies[0].relative_filepath
+        sbox_filepath = sbox_filepath.replace(os.path.sep, '/')
+        mesh_file["filename"] = sbox_filepath
         mesh_file["import_translation"] = dmx.Vector3([0, 0, 0])
         mesh_file["import_rotation"] = dmx.Vector3([0, 0, 0])
         mesh_file["import_scale"] = constants.SCALE

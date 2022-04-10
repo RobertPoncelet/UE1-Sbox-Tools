@@ -73,7 +73,7 @@ class AssetDescription:
         _filetype = _filetype[1:]
         return AssetDescription(_stage, _game, _category, _subfolder, _name, _filetype)
 
-    def path(self, allow_wildcard=False):
+    def path(self, relative_to_root=False, allow_wildcard=False):
         assert(self.stage in STAGES)
         assert(self.game in GAMES or (allow_wildcard and self.game == "*"))
         assert(self.category in CATEGORY_DICT[self.stage] 
@@ -90,6 +90,8 @@ class AssetDescription:
             self.name + "." + self.filetype
         ])
         ret = os.path.realpath(ret)
+        if relative_to_root:
+            ret = os.path.relpath(ret, start=os.path.join(REPO_DIR, root))
         return ret
 
     def glob(self):
