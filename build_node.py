@@ -23,7 +23,7 @@ class BuildNode(object):
     # Return the timestamp of our own asset path
     def build(self):
         file_exists = os.path.isfile(self.filepath)
-        #assert(file_exists or self.dependencies)
+        assert(file_exists or self.dependencies)
         if file_exists and self.dependencies:
             dep_mtime = max(dep.build() for dep in self.dependencies)
             file_outdated = dep_mtime > self.mtime

@@ -46,13 +46,7 @@ if __name__ == "__main__":
             for pattern in args.psks for path in glob.glob(pattern)]
     else:
         all_psks = asset.AssetDescription("original", "*", "model", "**", "*", "psk")
-        psk_descs = [asset.AssetDescription.from_path(path)
-            for path in all_psks.glob()]
-
-    # from_path() can't currently tell the difference between original materials and models :(
-    # TODO: maybe change the file structure to fix this
-    for desc in psk_descs:
-        desc.category = "model"
+        psk_descs = all_psks.glob()
     
     helpers = [ModelBuildTreeHelper(psk_to_vmdl_desc(p), p) for p in psk_descs]
     vmdl_nodes = [vmdl.VmdlNode(helper) for helper in helpers]

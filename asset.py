@@ -95,4 +95,12 @@ class AssetDescription:
         return ret
 
     def glob(self):
-        return glob.glob(self.path(allow_wildcard=True), recursive=True)
+        paths = glob.glob(self.path(allow_wildcard=True), recursive=True)
+        ret = [AssetDescription.from_path(p) for p in paths]
+
+        # HACK: from_paths() can't currently tell the difference between original materials and models :(
+        if self.stage == "original" and "*" not in self.category:
+            for desc in ret:
+                desc.category = self.category
+
+        return ret
