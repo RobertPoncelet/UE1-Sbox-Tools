@@ -7,17 +7,11 @@ import datamodel as dmx
 class VmdlNode(BuildNode):
     def __init__(self, tree):
         super().__init__(tree.vmdl)
-        fbx_desc = asset.AssetDescription(
-            "converted",
-            tree.vmdl.game,
-            tree.vmdl.category,
-            tree.vmdl.subfolder,
-            tree.vmdl.name,
-            "fbx"
-        )
+        fbx_desc = tree.vmdl.clone()
+        fbx_desc.stage = "converted"
+        fbx_desc.filetype = "fbx"
         tree.fbx = fbx_desc
-        self._dependencies = [FbxNode(tree)] 
-        # TODO: add materials
+        self._dependencies = [FbxNode(tree)]
 
     @property
     def dependencies(self):

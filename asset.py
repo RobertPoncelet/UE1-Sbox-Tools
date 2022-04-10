@@ -1,4 +1,4 @@
-import glob, os, platform
+import copy, glob, os, platform
 from dataclasses import dataclass
 
 if platform.node().startswith("LAPTOP"):
@@ -104,3 +104,6 @@ class AssetDescription:
                 desc.category = self.category
 
         return ret
+
+    def clone(self):
+        return copy.copy(self)

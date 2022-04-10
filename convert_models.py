@@ -15,14 +15,10 @@ def psk_to_vmdl_desc(desc: asset.AssetDescription):
     if new_name.lower().startswith("sk"):
         new_name = new_name[2:]
 
-    return asset.AssetDescription(
-        "converted",
-        desc.game,
-        desc.category,
-        desc.subfolder,
-        new_name,
-        "vmdl"
-    )
+    ret = desc.clone()
+    ret.stage = "converted"
+    ret.name = new_name
+    ret.filetype = "vmdl"
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert UE1 PSKs to VMDLs.")
