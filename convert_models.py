@@ -33,7 +33,6 @@ class VmdlNode(BuildNode):
         return self._dependencies
 
     def regenerate_file(self):
-        # TODO: create DataModel from a template, fill it with FBX/material data from dependencies, save it in our filepath
         dm = dmx.DataModel("modeldoc29", "3cec427c-1b0e-4d48-a90a-0436f33a6041")
         meta_root = dm.add_element(None)
 
@@ -63,19 +62,16 @@ class VmdlNode(BuildNode):
         mesh_list["children"].append(mesh_file)
         root["children"].append(mesh_list)
 
-        meta_root["rootNode"] = root
-        
+        anim_list = dm.add_element(None, "AnimationList")
+        anim_list["children"] = dmx.make_array(None, dmx.Element)
+        anim_file = dm.add_element("test", "AnimFile")
+        anim_file["take"] = 1
+        anim_file["source_filename"] = "hp2/models/HPModels/test.fbx"
+        anim_list["children"].append(anim_file)
+        root["children"].append(anim_list)
 
-        '''relayPlugData = datamodel.add_element(None, "DmePlugList")
-        relayPlugData["names"] = dmx.make_array(None, str)
-        relayPlugData["dataTypes"] = dmx.make_array(None, int)
-        relayPlugData["plugTypes"] = dmx.make_array(None, int)
-        relayPlugData["descriptions"] = dmx.make_array(None, str)
-        e["relayPlugData"] = relayPlugData
-        e["connectionsData"] = dmx.make_array(None, dmx.Element)
-        e["entity_properties"] = datamodel.add_element(None, "EditGameClassProps")
-        e["hitNormal"] = dmx.Vector3([0, 0, 1])
-        e["isProceduralEntity"] = False'''
+        meta_root["rootNode"] = root
+
         dm.write(self.filepath, "keyvalues3", "e21c7f3c-8a33-41c5-9977-a76d3a32aa0d")
 
 def psk_to_vmdl_desc(desc: asset.AssetDescription):

@@ -465,6 +465,9 @@ class Element(collections.OrderedDict):
 		if self.type != "DmElement":
 			out += _make_attr_str("_class", self.type, True)
 
+		if self.name is not None:
+			out += _make_attr_str("name", self.name, True)
+
 		for name in self:
 			attr = self[name]
 			if attr == None:
