@@ -30,14 +30,13 @@ class VmatNode(BuildNode):
         return self._dependencies
 
     def regenerate_file(self):
-        with open("template.vmat") as template:
-            with open(self.filepath, "w") as matfile:
-                text = template.read()
-                mat_dict = {
-                    "tex_color": self.dependencies[0].sbox_filepath,
-                    "tex_trans": "materials/default/default_trans.tga",
-                    "alpha_test": "0",
-                    "shader": "complex.vfx"
-                }
-                text = text.format(**mat_dict)
-                matfile.write(text)
+        with open("template.vmat") as template, open(self.filepath, "w") as matfile:
+            text = template.read()
+            mat_dict = {
+                "tex_color": self.dependencies[0].sbox_filepath,
+                "tex_trans": "materials/default/default_trans.tga",
+                "alpha_test": "0",
+                "shader": "complex.vfx"
+            }
+            text = text.format(**mat_dict)
+            matfile.write(text)

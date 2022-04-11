@@ -1,14 +1,15 @@
 import os
-import constants
-from build_node import BuildNode
-from fbx import FbxNode
-from vmat import VmatNode
+import asset, constants
+from fbx import FbxAsset
+from vmat import VmatAsset
 import datamodel as dmx
 
-class VmdlNode(BuildNode):
-    def __init__(self, tree):
-        super().__init__(tree.vmdl)
-        fbx_desc = tree.vmdl.clone()
+class VmdlAsset(asset.AssetDescription):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def fuck(self):
+        fbx_desc = self.clone()
         fbx_desc.stage = "converted"
         fbx_desc.filetype = "fbx"
         tree.fbx = fbx_desc
@@ -38,10 +39,14 @@ class VmdlNode(BuildNode):
             self._vmat_nodes.append(VmatNode(vmat_desc, tree))
 
     @property
-    def dependencies(self):
-        return [self._fbx_node] + self._vmat_nodes
+    def file_extension(self):
+        return "vmdl"
 
-    def regenerate_file(self):
+    @property
+    def category(self):
+        return "model"
+
+    def regenerate(self):
         dm = dmx.DataModel("modeldoc29", "3cec427c-1b0e-4d48-a90a-0436f33a6041")
         meta_root = dm.add_element(None)
 

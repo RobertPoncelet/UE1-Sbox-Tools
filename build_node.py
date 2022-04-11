@@ -2,7 +2,7 @@ import os
 
 import asset
 
-class BuildNode(object):
+class BuildNode:
     force_regen = False
 
     def __init__(self, asset_desc: asset.AssetDescription):
@@ -13,14 +13,6 @@ class BuildNode(object):
         return self._asset.path()
 
     @property
-    def relative_filepath(self):
-        return self._asset.path(relative_to_root=True)
-
-    @property
-    def sbox_filepath(self):
-        return self.relative_filepath.replace(os.path.sep, '/')
-
-    @property
     def mtime(self):
         return os.path.getmtime(self.filepath)
 
@@ -29,7 +21,7 @@ class BuildNode(object):
         file_exists = os.path.isfile(self.filepath)
         assert(file_exists or self.dependencies)
         if self.dependencies:
-            dep_mtime = max(dep.build() for dep in self.dependencies)
+            dep_mtime = max(dep.build() for dep in self.dependencies.values())
             file_outdated = not file_exists or dep_mtime > self.mtime
         else:
             file_outdated = False
@@ -46,14 +38,8 @@ class BuildNode(object):
     # Return a list of BuildNodes
     @property
     def dependencies(self):
-        raise NotImplementedError("Please use a subclass of BuildNode.")
+        return self._asset.dependencies
 
     # Convert dependencies to a file in the filepath
     def regenerate_file(self):
-        raise NotImplementedError("Please use a subclass of BuildNode.")
-
-# Use this class for original source files which have no dependencies
-class SourceFileNode(BuildNode):
-    @property
-    def dependencies(self):
-        return None
+        self._asset.regenerate()

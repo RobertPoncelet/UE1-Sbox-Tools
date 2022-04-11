@@ -4,14 +4,6 @@ import multiprocessing as mp
 
 import asset, fbx, vmat, vmdl
 
-@dataclass
-class ModelBuildTreeHelper:
-    vmdl: asset.AssetDescription
-    psk: asset.AssetDescription
-    fbx: asset.AssetDescription = None
-    vmats: list[asset.AssetDescription] = None
-    tgas: list[asset.AssetDescription] = None
-
 def build_psk(helper, regen_fbx=False, regen_vmdl=False, regen_vmat=False):
     if regen_fbx:
         fbx.FbxNode.force_regen = True
