@@ -7,6 +7,7 @@ class BuildNode:
 
     def __init__(self, asset_desc: asset.AssetDescription):
         self._asset = asset_desc
+        self._dependency_nodes = None
 
     @property
     def filepath(self):
@@ -38,7 +39,9 @@ class BuildNode:
     # Return a list of BuildNodes
     @property
     def dependencies(self):
-        return self._asset.dependencies
+        if not self._dependency_nodes:
+            self._dependency_nodes = [BuildNode(desc) for desc in self._asset.dependencies]
+        return self._dependency_nodes
 
     # Convert dependencies to a file in the filepath
     def regenerate_file(self):

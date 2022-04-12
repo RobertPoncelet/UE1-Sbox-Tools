@@ -1,17 +1,22 @@
 import argparse, glob
-from dataclasses import dataclass
 import multiprocessing as mp
 
 import asset, fbx, vmat, vmdl
+from build_node import BuildNode
 
-def build_psk(helper, regen_fbx=False, regen_vmdl=False, regen_vmat=False):
+# Bit hacky to define it here but oh well
+class PskType:
+    force_regen = False
+    file_extension = "psk"
+    category = "model"
+
+def build_vmdl(node, regen_fbx=False, regen_vmdl=False, regen_vmat=False):
     if regen_fbx:
-        fbx.FbxNode.force_regen = True
+        fbx.FbxType.force_regen = True
     if regen_vmdl:
-        vmdl.VmdlNode.force_regen = True
+        vmdl.VmdlType.force_regen = True
     if regen_vmat:
-        vmat.VmatNode.force_regen = True
-    node = vmdl.VmdlNode(helper)
+        vmat.VmatType.force_regen = True
     node.build()
         
 if __name__ == "__main__":
@@ -29,17 +34,22 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.regen_fbx:
-        fbx.FbxNode.force_regen = True
+        fbx.FbxType.force_regen = True
     if args.regen_vmdl:
-        vmdl.VmdlNode.force_regen = True
+        vmdl.VmdlType.force_regen = True
     if args.regen_vmat:
-        vmat.VmatNode.force_regen = True
+        vmat.VmatType.force_regen = True
 
     if args.psks:
         psk_descs = [asset.AssetDescription.from_path(path)
             for pattern in args.psks for path in glob.glob(pattern)]
     else:
-        all_psks = asset.AssetDescription("original", "*", "model", "**", "*", "psk")
+        all_psks = asset.AssetDescription(
+            stage="original",
+            game="*",
+            subfolder="**",
+            name="*",
+            asset_type=PskType)
         psk_descs = all_psks.glob()
 
     def psk_to_vmdl_desc(psk: asset.AssetDescription):
@@ -48,19 +58,24 @@ if __name__ == "__main__":
         if new_name.lower().startswith("sk"):
             new_name = new_name[2:]
 
-        ret = psk.clone()
-        ret.stage = "converted"
-        ret.name = new_name
-        ret.filetype = "vmdl"
-        return ret
+        vmdl_desc = psk.clone()
+        vmdl_desc.stage = "converted"
+        vmdl_desc.name = new_name
+        vmdl_desc.asset_type = vmdl.VmdlType
+        return vmdl_desc
+
+    print([p.path() for p in psk_descs])
     
-    helpers = [ModelBuildTreeHelper(psk_to_vmdl_desc(p), p) for p in psk_descs]
-    helpers = helpers[:10]
+    vmdl_descs = [psk_to_vmdl_desc(p) for p in psk_descs]
+    vmdl_descs = vmdl_descs[:10] # Remove when we're ready to do the full thing
+
+    print("="*20 + " RESOLVING DEPENDENCIES " + "="*20)
+    for vmdl_desc, psk_desc in zip(vmdl_descs, psk_descs):
+        vmdl_desc.resolve_dependencies(psk_desc)
 
     print("="*20 + " STARTING BUILD " + "="*20)
-
     with mp.Pool(processes=None) as pool:
-        mp_args = [(h, args.regen_fbx, args.regen_vmdl, args.regen_vmat) for h in helpers]
-        pool.starmap(build_psk, mp_args)
+        mp_args = [(BuildNode(v), args.regen_fbx, args.regen_vmdl, args.regen_vmat) for v in vmdl_descs]
+        pool.starmap(build_vmdl, mp_args)
 
     print("Done")

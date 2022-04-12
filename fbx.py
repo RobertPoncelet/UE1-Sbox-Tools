@@ -1,19 +1,20 @@
 import os, subprocess
-from build_node import BuildNode, SourceFileNode
 import constants
 
-class FbxNode(BuildNode):
-    def __init__(self, tree):
-        assert(tree.fbx)
-        assert(tree.psk)
-        super().__init__(tree.fbx)
-        self._dependencies = [SourceFileNode(tree.psk)]
-    
-    @property
-    def dependencies(self):
-        return self._dependencies
+class FbxType:
+    force_regen = False
+    file_extension = "fbx"
+    category = "model"
 
-    def regenerate_file(self):
+    # Fill the vmdl's dependencies based on its current state so the BuildNode can access it later
+    # The dependencies added should match the arguments given to regenerate (minus the VMDL itself)
+    @staticmethod
+    def resolve_dependencies(fbx_desc, psk_desc):
+        # PSK should have no dependencies, all we need to do is add it
+        fbx_desc.add_dependency_on("psk_desc", psk_desc)
+
+    @staticmethod
+    def regenerate(fbx_desc, psk_desc):
         script_path = os.path.realpath("blender_psk_to_fbx.py")
         print("Starting Blender...")
         p1 = subprocess.run(
@@ -23,8 +24,8 @@ class FbxNode(BuildNode):
                 "--python",
                 script_path,
                 "--",
-                self.dependencies[0].filepath,
-                self.filepath
+                psk_desc.filepath,
+                fbx_desc.filepath
             ],
             stderr=subprocess.STDOUT,
             text=True)
