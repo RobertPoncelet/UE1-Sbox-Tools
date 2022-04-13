@@ -16,7 +16,6 @@ class FbxType:
     @staticmethod
     def regenerate(fbx_desc, psk_desc):
         script_path = os.path.realpath("blender_psk_to_fbx.py")
-        print("Starting Blender...")
         p1 = subprocess.run(
             [
                 constants.BLENDER_PATH,
@@ -26,7 +25,4 @@ class FbxType:
                 "--",
                 psk_desc.path(),
                 fbx_desc.path()
-            ],
-            stderr=subprocess.STDOUT,
-            text=True)
-        print("Finished Blender")
+            ], capture_output=True)

@@ -67,7 +67,8 @@ if __name__ == "__main__":
 
     print("="*20 + " STARTING BUILD " + "="*20)
     with mp.Pool(processes=None) as pool:
-        mp_args = [(BuildNode(v), args.regen_fbx, args.regen_vmdl, args.regen_vmat) for v in vmdl_descs]
+        mp_args = [(BuildNode(v), args.regen_fbx, args.regen_vmdl, args.regen_vmat)
+            for v in vmdl_descs]
         pool.starmap(build_vmdl, mp_args)
 
     print("Done")

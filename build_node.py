@@ -3,8 +3,6 @@ import os
 import asset
 
 class BuildNode:
-    force_regen = False
-
     def __init__(self, asset_desc: asset.AssetDescription):
         self._asset = asset_desc
         self._dependency_nodes = None
@@ -26,8 +24,8 @@ class BuildNode:
             file_outdated = not file_exists or dep_mtime > self.mtime
         else:
             file_outdated = False
-        if type(self).force_regen or not file_exists or file_outdated:
-            print("Generating", type(self).__name__, self.filepath)
+        if self._asset.asset_type.force_regen or not file_exists or file_outdated:
+            print("Generating", self._asset.asset_type.__name__, self.filepath)
             directory = os.path.dirname(self.filepath)
             if not os.path.isdir(directory):
                 print("Making directory", directory)

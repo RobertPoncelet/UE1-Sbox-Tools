@@ -32,20 +32,19 @@ class VmdlType:
 
         # Handle materials
         # Find TGAs matching the VMDL name under the "Skins" subfolder
-        # TODO: get the TGA name from the PSK, and the VMAT name from the VMDL
-        tga_glob = vmdl_desc.clone()
-        tga_glob.stage = "original"
-        tga_glob.category = "material"
+        tga_glob = psk_desc.clone()
+        tga_glob.asset_type = TgaType
         tga_glob.subfolder = os.path.join(tga_glob.subfolder, "Skins")
         assert(psk_desc.name[-4:].lower() == "mesh") # We need the "sk" prefix, if applicable
         tga_glob.name = psk_desc.name[:-4] + "Tex*"
-        tga_glob.asset_type = TgaType
         tgas = tga_glob.glob()
 
         # Make a VMAT for each TGA, ensure it's appropriately filled in, add our dependency on it
         def tga_to_vmat(tga_desc):
             vmat_desc = tga_desc.clone()
             vmat_desc.stage = "converted"
+            if vmat_desc.name[:2].lower() == "sk":
+                vmat_desc.name = vmat_desc.name[2:]
             vmat_desc.asset_type = VmatType
             vmat_desc.subfolder = vmdl_desc.subfolder # Let's not use the "Skins" subfolder
             VmatType.resolve_dependencies(vmat_desc, tga_desc)
@@ -53,7 +52,6 @@ class VmdlType:
 
         vmat_descs = [tga_to_vmat(tga_desc) for tga_desc in tgas]
         vmdl_desc.add_dependency_on("vmat_descs", vmat_descs)
-        print(vmat_descs)
 
     @staticmethod
     def regenerate(vmdl_desc, fbx_desc, vmat_descs):
