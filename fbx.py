@@ -24,8 +24,8 @@ class FbxType:
                 "--python",
                 script_path,
                 "--",
-                psk_desc.filepath,
-                fbx_desc.filepath
+                psk_desc.path(),
+                fbx_desc.path()
             ],
             stderr=subprocess.STDOUT,
             text=True)

@@ -5,6 +5,11 @@ from fbx import FbxType
 from vmat import VmatType
 import datamodel as dmx
 
+class TgaType:
+    force_regen = False
+    file_extension = "tga"
+    category = "material"
+
 class VmdlType:
     force_regen = False
     file_extension = "vmdl"
@@ -24,12 +29,14 @@ class VmdlType:
 
         # Handle materials
         # Find TGAs matching the VMDL name under the "Skins" subfolder
+        # TODO: get the TGA name from the PSK, and the VMAT name from the VMDL
         tga_glob = vmdl_desc.clone()
         tga_glob.stage = "original"
         tga_glob.category = "material"
         tga_glob.subfolder = os.path.join(tga_glob.subfolder, "Skins")
-        tga_glob.name = tga_glob.name[:-4] + "Tex*"
-        tga_glob.filetype = "tga"
+        assert(psk_desc.name[-4:].lower() == "mesh") # We need the "sk" prefix, if applicable
+        tga_glob.name = psk_desc.name[:-4] + "Tex*"
+        tga_glob.asset_type = TgaType
         tgas = tga_glob.glob()
 
         # Make a VMAT for each TGA, ensure it's appropriately filled in, add our dependency on it
@@ -39,9 +46,11 @@ class VmdlType:
             vmat_desc.asset_type = VmatType
             vmat_desc.subfolder = vmdl_desc.subfolder # Let's not use the "Skins" subfolder
             VmatType.resolve_dependencies(vmat_desc, tga_desc)
+            return vmat_desc
 
         vmat_descs = [tga_to_vmat(tga_desc) for tga_desc in tgas]
         vmdl_desc.add_dependency_on("vmat_descs", vmat_descs)
+        print(vmat_descs)
 
     @staticmethod
     def regenerate(vmdl_desc, fbx_desc, vmat_descs):
@@ -58,7 +67,7 @@ class VmdlType:
 
         for vmat in vmat_descs:
             vmat_elem = dm.add_element(None)
-            vmat_elem["from"] = os.path.basename(vmat.filepath)
+            vmat_elem["from"] = os.path.basename(vmat.path())
             vmat_elem["to"] = vmat.sbox_path()
             default_mat_grp["remaps"].append(vmat_elem)
 
@@ -91,4 +100,4 @@ class VmdlType:
 
         meta_root["rootNode"] = root
 
-        dm.write(vmdl_desc.filepath, "keyvalues3", "e21c7f3c-8a33-41c5-9977-a76d3a32aa0d")
+        dm.write(vmdl_desc.path(), "keyvalues3", "e21c7f3c-8a33-41c5-9977-a76d3a32aa0d")

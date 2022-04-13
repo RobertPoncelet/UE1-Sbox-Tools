@@ -12,12 +12,12 @@ class ColorPngType:
 
     @staticmethod
     def regenerate(png_desc, tga_desc):
-        im = Image.open(tga_desc.filepath)
-        im.save(png_desc.filepath)
+        im = Image.open(tga_desc.path())
+        im.save(png_desc.path())
 
 class VmatType:
     force_regen = False
-    file_extension = "vmdl"
+    file_extension = "vmat"
     category = "material"
 
     @staticmethod
@@ -30,7 +30,7 @@ class VmatType:
 
     @staticmethod
     def regenerate(vmat_desc, png_desc):
-        with open("template.vmat") as template, open(vmat_desc.filepath, "w") as matfile:
+        with open("template.vmat") as template, open(vmat_desc.path(), "w") as matfile:
             text = template.read()
             mat_dict = {
                 "tex_color": png_desc.sbox_path(),

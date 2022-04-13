@@ -10,14 +10,14 @@ class PskType:
     file_extension = "psk"
     category = "model"
 
-def build_vmdl(node, regen_fbx=False, regen_vmdl=False, regen_vmat=False):
+def build_vmdl(root_node, regen_fbx=False, regen_vmdl=False, regen_vmat=False):
     if regen_fbx:
         fbx.FbxType.force_regen = True
     if regen_vmdl:
         vmdl.VmdlType.force_regen = True
     if regen_vmat:
         vmat.VmatType.force_regen = True
-    node.build()
+    root_node.build()
         
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert UE1 PSKs to VMDLs.")
@@ -63,11 +63,9 @@ if __name__ == "__main__":
         vmdl_desc.name = new_name
         vmdl_desc.asset_type = vmdl.VmdlType
         return vmdl_desc
-
-    print([p.path() for p in psk_descs])
     
     vmdl_descs = [psk_to_vmdl_desc(p) for p in psk_descs]
-    vmdl_descs = vmdl_descs[:10] # Remove when we're ready to do the full thing
+    vmdl_descs = vmdl_descs[:20] # Remove when we're ready to do the full thing
 
     print("="*20 + " RESOLVING DEPENDENCIES " + "="*20)
     for vmdl_desc, psk_desc in zip(vmdl_descs, psk_descs):

@@ -143,11 +143,22 @@ class AssetDescription:
     def sbox_path(self):
         return self.path(relative_to_root=True).replace(os.path.sep, '/')
 
+    def deps_str(self):
+        if self.dependencies:
+            if len(self.dependencies) == 1:
+                deps = list(self.dependencies.values())[0].deps_str()
+            else:
+                deps = [d.deps_str() for d in self.dependencies]
+            return "{} --> {}".format(self.sbox_path(), deps)
+        else:
+            return self.sbox_path()
+
     def glob(self):
         paths = glob.glob(self.path(allow_wildcard=True), recursive=True)
         ret = [AssetDescription.from_path(p) for p in paths]
 
         # HACK: from_paths() can't currently tell the difference between original materials and models :(
+        # TODO: we can fix this by implementing filetype_to_asset_type()
         if self.stage == "original" and "*" not in self.asset_type.category:
             for desc in ret:
                 desc.asset_type = self.asset_type
@@ -155,7 +166,9 @@ class AssetDescription:
         return ret
 
     def clone(self):
-        return copy.copy(self)
+        ret = copy.deepcopy(self)
+        ret.dependencies = {}
+        return ret
 
     def resolve_dependencies(self, *args):
         self.asset_type.resolve_dependencies(self, *args)
