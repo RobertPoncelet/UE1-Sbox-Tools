@@ -1,6 +1,5 @@
 import os
 import constants
-from asset import InvalidAssetError
 from fbx import FbxType
 from vmat import VmatType
 import datamodel as dmx
@@ -9,6 +8,11 @@ class TgaType:
     force_regen = False
     file_extension = "tga"
     category = "material"
+
+class PskType:
+    force_regen = False
+    file_extension = "psk"
+    category = "model"
 
 class VmdlType:
     force_regen = False
@@ -19,8 +23,7 @@ class VmdlType:
     # The dependencies added should match the arguments given to regenerate (minus the VMDL itself)
     @staticmethod
     def resolve_dependencies(vmdl_desc, psk_desc):
-        if vmdl_desc.asset_type is not VmdlType:
-            raise InvalidAssetError("Can't resolve VMDL dependencies on a non-VMDL asset!")
+        assert(vmdl_desc.asset_type is VmdlType)
         fbx_desc = vmdl_desc.clone()
         fbx_desc.stage = "converted"
         fbx_desc.asset_type = FbxType

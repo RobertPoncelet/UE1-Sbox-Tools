@@ -1,5 +1,13 @@
 import copy, glob, os, platform
 
+from fbx import FbxType
+from vmat import ColorPngType, VmatType
+from vmdl import PskType, TgaType, VmdlType
+
+VALID_ASSET_TYPES = [FbxType, ColorPngType, VmatType, PskType, TgaType, VmdlType]
+def filetype_to_asset_type(filetype):
+    return next((at for at in VALID_ASSET_TYPES if at.file_extension == filetype), None)
+
 if platform.node().startswith("LAPTOP"):
     REPO_DIR = os.path.realpath("D:/Google Drive/hp_resources")
 else:
@@ -99,7 +107,7 @@ class AssetDescription:
         _subfolder = os.path.sep.join(parts[3:-1])
         _name, filetype = os.path.splitext(parts[-1])
         filetype = filetype[1:]
-        _asset_type = VoidAssetType #filetype_to_asset_type(filetype) # TODO
+        _asset_type = filetype_to_asset_type(filetype)
         return AssetDescription(
             stage=_stage,
             game=_game,
@@ -156,12 +164,6 @@ class AssetDescription:
     def glob(self):
         paths = glob.glob(self.path(allow_wildcard=True), recursive=True)
         ret = [AssetDescription.from_path(p) for p in paths]
-
-        # HACK: from_paths() can't currently tell the difference between original materials and models :(
-        # TODO: we can fix this by implementing filetype_to_asset_type()
-        if self.stage == "original" and "*" not in self.asset_type.category:
-            for desc in ret:
-                desc.asset_type = self.asset_type
 
         return ret
 

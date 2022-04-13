@@ -4,12 +4,6 @@ import multiprocessing as mp
 import asset, fbx, vmat, vmdl
 from build_node import BuildNode
 
-# Bit hacky to define it here but oh well
-class PskType:
-    force_regen = False
-    file_extension = "psk"
-    category = "model"
-
 def build_vmdl(root_node, regen_fbx=False, regen_vmdl=False, regen_vmat=False):
     if regen_fbx:
         fbx.FbxType.force_regen = True
@@ -49,7 +43,7 @@ if __name__ == "__main__":
             game="*",
             subfolder="**",
             name="*",
-            asset_type=PskType)
+            asset_type=vmdl.PskType)
         psk_descs = all_psks.glob()
 
     def psk_to_vmdl_desc(psk: asset.AssetDescription):
