@@ -4,6 +4,11 @@ from fbx import FbxType
 from vmat import VmatType
 import datamodel as dmx
 
+class UClassType:
+    force_regen = False
+    file_extension = "uc"
+    category = "uclass"
+
 class TgaType:
     force_regen = False
     file_extension = "tga"
@@ -31,6 +36,19 @@ class VmdlType:
         vmdl_desc.add_dependency_on("fbx_desc", fbx_desc)
 
         # Handle materials
+        # Find the UClass, if available
+        uc_desc = psk_desc.clone()
+        uc_desc.asset_type = UClassType
+        uc_desc.subfolder = os.path.join(uc_desc.subfolder, "Classes")
+        assert(uc_desc.name[-4:].lower() == "mesh") # We need the "sk" prefix, if applicable
+        uc_desc.name = uc_desc.name[:-4]
+        is_masked = False
+        if uc_desc.exists():
+            with open(uc_desc.path()) as uc_file:
+                is_masked = "STY_Masked" in uc_file.read()
+        else:
+            print(uc_desc.path(), "does not exist")
+
         # Find TGAs matching the VMDL name under the "Skins" subfolder
         tga_glob = psk_desc.clone()
         tga_glob.asset_type = TgaType
@@ -47,6 +65,7 @@ class VmdlType:
                 vmat_desc.name = vmat_desc.name[2:]
             vmat_desc.asset_type = VmatType
             vmat_desc.subfolder = vmdl_desc.subfolder # Let's not use the "Skins" subfolder
+            vmat_desc.is_masked = is_masked
             VmatType.resolve_dependencies(vmat_desc, tga_desc)
             return vmat_desc
 

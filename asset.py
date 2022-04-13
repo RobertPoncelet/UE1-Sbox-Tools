@@ -26,7 +26,8 @@ ROOT_DICT = {
 CATEGORY_DICT = {
     "original": {
         "material": "raw_models_textures",
-        "model": "raw_models_textures"
+        "model": "raw_models_textures",
+        "uclass": "uclasses"
     },
     "intermediate": {
         "material": "materials",
@@ -150,6 +151,9 @@ class AssetDescription:
 
     def sbox_path(self):
         return self.path(relative_to_root=True).replace(os.path.sep, '/')
+
+    def exists(self):
+        return os.path.exists(self.path())
 
     def deps_str(self):
         if self.dependencies:

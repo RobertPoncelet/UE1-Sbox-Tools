@@ -35,7 +35,7 @@ class VmatType:
             mat_dict = {
                 "tex_color": png_desc.sbox_path(),
                 "tex_trans": "materials/default/default_trans.tga",
-                "alpha_test": "0",
+                "alpha_test": int(vmat_desc.is_masked),
                 "shader": "complex.vfx"
             }
             text = text.format(**mat_dict)
