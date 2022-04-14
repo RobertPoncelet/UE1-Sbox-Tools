@@ -1,10 +1,10 @@
 import copy, glob, os, platform
 
 from fbx import FbxType
-from vmat import ColorPngType, VmatType
+from vmat import PngType, VmatType
 from vmdl import PskType, TgaType, VmdlType
 
-VALID_ASSET_TYPES = [FbxType, ColorPngType, VmatType, PskType, TgaType, VmdlType]
+VALID_ASSET_TYPES = [FbxType, PngType, VmatType, PskType, TgaType, VmdlType]
 def filetype_to_asset_type(filetype):
     return next((at for at in VALID_ASSET_TYPES if at.file_extension == filetype), None)
 

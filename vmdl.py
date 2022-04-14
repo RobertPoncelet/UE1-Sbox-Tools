@@ -66,6 +66,7 @@ class VmdlType:
             vmat_desc.asset_type = VmatType
             vmat_desc.subfolder = vmdl_desc.subfolder # Let's not use the "Skins" subfolder
             vmat_desc.is_masked = is_masked
+            vmat_desc.parent_tga = tga_desc
             VmatType.resolve_dependencies(vmat_desc, tga_desc)
             return vmat_desc
 
@@ -87,7 +88,8 @@ class VmdlType:
 
         for vmat in vmat_descs:
             vmat_elem = dm.add_element(None)
-            vmat_elem["from"] = os.path.basename(vmat.path())
+            orig_tga_name = os.path.basename(vmat.parent_tga.path())
+            vmat_elem["from"] = os.path.splitext(orig_tga_name)[0] + ".vmat"
             vmat_elem["to"] = vmat.sbox_path()
             default_mat_grp["remaps"].append(vmat_elem)
 
