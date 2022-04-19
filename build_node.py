@@ -4,6 +4,8 @@ import asset
 
 class BuildNode:
     def __init__(self, asset_desc: asset.AssetDescription):
+        if type(asset_desc) is not asset.AssetDescription:
+            raise asset.InvalidAssetError("BuildNode() only takes AssetDescriptions.")
         self._asset = asset_desc
         self._dependency_nodes = None
 
@@ -37,12 +39,5 @@ class BuildNode:
     # Return a list of BuildNodes
     def dependencies(self):
         if not self._dependency_nodes:
-            self._dependency_nodes = []
-            for item in self._asset.dependencies.values():
-                if type(item) is asset.AssetDescription:
-                    self._dependency_nodes.append(BuildNode(item))
-                elif type(item) is list:
-                    self._dependency_nodes += [BuildNode(i) for i in item]
-                else:
-                    raise asset.InvalidAssetError("BuildNodes can only be constructed with AssetDescriptions.")
+            self._dependency_nodes = [BuildNode(i) for i in self._asset.dependencies]
         return self._dependency_nodes

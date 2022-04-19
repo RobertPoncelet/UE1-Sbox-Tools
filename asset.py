@@ -2,9 +2,9 @@ import copy, glob, os, platform
 
 from fbx import FbxType
 from vmat import PngType, VmatType
-from vmdl import PskType, TgaType, VmdlType
+from vmdl import PskType, TgaType, UClassType, VmdlType
 
-VALID_ASSET_TYPES = [FbxType, PngType, VmatType, PskType, TgaType, VmdlType]
+VALID_ASSET_TYPES = [FbxType, PngType, VmatType, PskType, TgaType, VmdlType, UClassType]
 def filetype_to_asset_type(filetype):
     return next((at for at in VALID_ASSET_TYPES if at.file_extension == filetype), None)
 
@@ -72,7 +72,8 @@ class AssetDescription:
         self.name = name
         self.asset_type = asset_type
 
-        self.dependencies = {}
+        self._deps_args = []
+        self._deps_kwargs = {}
 
     @staticmethod
     def from_path(path):
@@ -173,14 +174,22 @@ class AssetDescription:
 
     def clone(self):
         ret = copy.deepcopy(self)
-        ret.dependencies = {}
+        ret._deps_args = []
+        ret._deps_kwargs = {}
         return ret
 
-    def resolve_dependencies(self, *args):
-        self.asset_type.resolve_dependencies(self, *args)
+    @property
+    def dependencies(self):
+        return self._deps_args + list(self._deps_kwargs.values())
 
-    def add_dependency_on(self, key, desc):
-        self.dependencies[key] = desc
+    def resolve_dependencies(self, *args, **kwargs):
+        self.asset_type.resolve_dependencies(self, *args, **kwargs)
+
+    def add_dependency_on(self, desc, key=None):
+        if key:
+            self._deps_kwargs[key] = desc
+        else:
+            self._deps_args.append(desc)
 
     def regenerate(self):
-        self.asset_type.regenerate(self, **self.dependencies)
+        self.asset_type.regenerate(self, *self._deps_args, **self._deps_kwargs)

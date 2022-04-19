@@ -33,7 +33,7 @@ class VmdlType:
         fbx_desc.stage = "converted"
         fbx_desc.asset_type = FbxType
         fbx_desc.resolve_dependencies(psk_desc)
-        vmdl_desc.add_dependency_on("fbx_desc", fbx_desc)
+        vmdl_desc.add_dependency_on(fbx_desc)
 
         # Handle materials
         # Find the UClass, if available
@@ -58,7 +58,7 @@ class VmdlType:
         tgas = tga_glob.glob()
 
         # Make a VMAT for each TGA, ensure it's appropriately filled in, add our dependency on it
-        def tga_to_vmat(tga_desc):
+        for tga_desc in tgas:
             vmat_desc = tga_desc.clone()
             vmat_desc.stage = "converted"
             if vmat_desc.name[:2].lower() == "sk":
@@ -68,13 +68,10 @@ class VmdlType:
             vmat_desc.is_masked = is_masked
             vmat_desc.parent_tga = tga_desc
             VmatType.resolve_dependencies(vmat_desc, tga_desc)
-            return vmat_desc
-
-        vmat_descs = [tga_to_vmat(tga_desc) for tga_desc in tgas]
-        vmdl_desc.add_dependency_on("vmat_descs", vmat_descs)
+            vmdl_desc.add_dependency_on(vmat_desc)
 
     @staticmethod
-    def regenerate(vmdl_desc, fbx_desc, vmat_descs):
+    def regenerate(vmdl_desc, fbx_desc, *vmat_descs):
         dm = dmx.DataModel("modeldoc29", "3cec427c-1b0e-4d48-a90a-0436f33a6041")
         meta_root = dm.add_element(None)
 

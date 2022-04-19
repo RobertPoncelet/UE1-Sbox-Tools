@@ -8,7 +8,7 @@ class PngType:
     @staticmethod
     def resolve_dependencies(png_desc, tga_desc):
         # TGA should have no dependencies
-        png_desc.add_dependency_on("tga_desc", tga_desc)
+        png_desc.add_dependency_on(tga_desc)
 
     @staticmethod
     def regenerate(png_desc, tga_desc):
@@ -31,14 +31,14 @@ class VmatType:
         png_desc.asset_type = PngType
         png_desc.save_alpha = False
         png_desc.resolve_dependencies(tga_desc)
-        vmat_desc.add_dependency_on("png_desc", png_desc)
+        vmat_desc.add_dependency_on(png_desc)
 
         if vmat_desc.is_masked:
             t_png_desc = png_desc.clone()
             t_png_desc.save_alpha = True
             t_png_desc.name += "_trans"
             t_png_desc.resolve_dependencies(tga_desc)
-            vmat_desc.add_dependency_on("t_png_desc", t_png_desc)
+            vmat_desc.add_dependency_on(t_png_desc, "t_png_desc")
 
     @staticmethod
     def regenerate(vmat_desc, png_desc, t_png_desc=None):

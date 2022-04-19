@@ -11,7 +11,7 @@ class FbxType:
     @staticmethod
     def resolve_dependencies(fbx_desc, psk_desc):
         # PSK should have no dependencies, all we need to do is add it
-        fbx_desc.add_dependency_on("psk_desc", psk_desc)
+        fbx_desc.add_dependency_on(psk_desc)
 
     @staticmethod
     def regenerate(fbx_desc, psk_desc):
