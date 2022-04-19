@@ -36,16 +36,27 @@ class VmdlType:
         vmdl_desc.add_dependency_on(fbx_desc)
 
         # Handle materials
-        # Find the UClass, if available
+        # Figure out whether it's masked using the UClass, if available
         uc_desc = psk_desc.clone()
         uc_desc.asset_type = UClassType
         uc_desc.subfolder = os.path.join(uc_desc.subfolder, "Classes")
         assert(uc_desc.name[-4:].lower() == "mesh") # We need the "sk" prefix, if applicable
         uc_desc.name = uc_desc.name[:-4]
-        is_masked = False
+        mesh_is_masked = False
+        masked_textures = []
         if uc_desc.exists():
             with open(uc_desc.path()) as uc_file:
-                is_masked = "STY_Masked" in uc_file.read()
+                for line in uc_file.readlines():
+                    line = line.lower() # Let's not have to worry about case
+                    if "sty_masked" in line:
+                        mesh_is_masked = True
+                        break
+                    if "#exec meshmap" in line or "#exec texture import" in line:
+                        keyvalues = [l for l in line.split() if "=" in l]
+                        args = {k:v for k, v in [kv.split("=") for kv in keyvalues]}
+                        if "flags" in args and args["flags"] == "2":
+                            tex_key = "texture" if "#exec meshmap" in line else "name"
+                            masked_textures.append(args[tex_key])
         else:
             print(uc_desc.path(), "does not exist")
 
@@ -65,7 +76,7 @@ class VmdlType:
                 vmat_desc.name = vmat_desc.name[2:]
             vmat_desc.asset_type = VmatType
             vmat_desc.subfolder = vmdl_desc.subfolder # Let's not use the "Skins" subfolder
-            vmat_desc.is_masked = is_masked
+            vmat_desc.is_masked = mesh_is_masked or tga_desc.name.lower() in masked_textures
             vmat_desc.parent_tga = tga_desc
             VmatType.resolve_dependencies(vmat_desc, tga_desc)
             vmdl_desc.add_dependency_on(vmat_desc)
