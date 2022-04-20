@@ -33,7 +33,7 @@ def convertMapFile(path, format, test):
     copyfile(out_path, copy_path)
     print("Finished copying " + out_path + " to " + copy_path)
 
-def convertMapFileToDMX(path, out_path, test):
+def convertMapFileToDMX(path, out_path, test=False):
     dm = dmx.load("template_map.vmap")
 
     globalClasses = []

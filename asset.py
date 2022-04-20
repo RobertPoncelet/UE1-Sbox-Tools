@@ -3,8 +3,10 @@ import copy, glob, os, platform
 from fbx import FbxType
 from vmat import PngType, VmatType
 from vmdl import PskType, TgaType, UClassType, VmdlType
+from vmap import T3dType, VmapType
 
-VALID_ASSET_TYPES = [FbxType, PngType, VmatType, PskType, TgaType, VmdlType, UClassType]
+VALID_ASSET_TYPES = [FbxType, PngType, VmatType, PskType, TgaType, VmdlType, UClassType, T3dType,
+                     VmapType]
 def filetype_to_asset_type(filetype):
     return next((at for at in VALID_ASSET_TYPES if at.file_extension == filetype), None)
 
@@ -27,15 +29,18 @@ CATEGORY_DICT = {
     "original": {
         "material": "raw_models_textures",
         "model": "raw_models_textures",
+        "map": "maps",
         "uclass": "uclasses"
     },
     "intermediate": {
         "material": "materials",
-        "model": "models"
+        "model": "models",
+        "map": "maps",
     },
     "converted": {
         "material": "materials",
-        "model": "models"
+        "model": "models",
+        "map": "maps"
     }
 }
 
@@ -48,11 +53,11 @@ class VoidAssetType:
     category = "*"
 
     @staticmethod
-    def resolve_dependencies(*args):
+    def resolve_dependencies(desc, *args, **kwargs):
         raise NotImplementedError("Please use a proper AssetType.")
 
     @staticmethod
-    def regenerate(desc, **kwargs):
+    def regenerate(desc, *args, **kwargs):
         raise NotImplementedError("Please use a proper AssetType.")
 
 class AssetDescription:
@@ -63,7 +68,7 @@ class AssetDescription:
         name: str,
         asset_type: type):
 
-        if not stage or not game or not subfolder or not name or not asset_type:
+        if not stage or not game or subfolder is None or not name or not asset_type:
             raise InvalidAssetError("Please provide all AssetDescription parameters.")
 
         self.stage = stage
@@ -74,6 +79,12 @@ class AssetDescription:
 
         self._deps_args = []
         self._deps_kwargs = {}
+
+    def __repr__(self):
+        return ("AssetDescription(stage=\"{}\", game=\"{}\", subfolder=\"{}\", name=\"{}\", "
+            "asset_type={})").format(
+            self.stage, self.game, self.subfolder, self.name, self.asset_type.__name__
+        )
 
     @staticmethod
     def from_path(path):
@@ -90,6 +101,10 @@ class AssetDescription:
         orig = parts[0] in GAMES
         if orig:
             parts.insert(0, "temp")
+
+        # Handle assets in the top-level subfolder
+        if len(parts) < 5:
+            parts.insert(3, "")
 
         if len(parts) < 5:
             raise InvalidAssetError("Path does not contain enough information to create an asset.")
