@@ -1,6 +1,8 @@
 import os, subprocess
 
-import asset, constants, t3d_to_entities
+import datamodel as dmx
+import asset, constants, halfedge_mesh, hp_ents
+from hammer import HammerClass
 
 class T3dType:
     force_regen = False
@@ -49,6 +51,7 @@ class VmapType:
 
     @staticmethod
     def resolve_dependencies(vmap_desc, t3d_desc):
+        vmap_desc.add_dependency_on(t3d_desc)
         obj_desc = t3d_desc.clone()
         obj_desc.stage = "intermediate"
         obj_desc.asset_type = ObjType
@@ -56,6 +59,29 @@ class VmapType:
         vmap_desc.add_dependency_on(obj_desc)
 
     @staticmethod
-    def regenerate(vmap_desc, obj_desc):
-        #t3d_to_entities.convertMapFileToDMX(t3d_desc.path(), vmap_desc.path())
-        pass # TODO
+    def regenerate(vmap_desc, t3d_desc, obj_desc):
+        dm = dmx.load("template_map.vmap")
+
+        globalClasses = []
+        hp_ents.buildEntities(t3d_desc.path(), globalClasses, 0)
+        for ent in globalClasses:
+            dm.root["world"]["children"].append(ent.toEntityElement(dm))
+
+        mesh = halfedge_mesh.from_obj(obj_desc)
+        e = dm.add_element(None, "CMapMesh")
+
+        # TODO: un-hardcode this
+        e["origin"] = dmx.Vector3([0, 0, 0])
+        e["angles"] = dmx.QAngle([0, 0, 0])
+        e["scales"] = dmx.Vector3([0, 0, 0])
+        node_id = int(dm.root["world"]["children"][-1]["nodeID"]) + 1
+        e["nodeID"] = node_id
+        e["referenceID"] = dmx.uint64(str(node_id))
+        e["children"] = dmx.make_array(None, dmx.Element)
+        e["editorOnly"] = False
+        e["force_hidden"] = False
+        e["transformLocked"] = False
+        e["variableTargetKeys"] = dmx.make_array(None, str)
+        e["variableNames"] = dmx.make_array(None, str)
+
+        dm.write(vmap_desc.path(), "keyvalues2", 4)

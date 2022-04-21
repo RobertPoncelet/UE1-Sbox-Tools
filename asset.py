@@ -198,6 +198,8 @@ class AssetDescription:
         self.asset_type.resolve_dependencies(self, *args, **kwargs)
 
     def add_dependency_on(self, desc, key=None):
+        if self.stage == "original":
+            raise InvalidAssetError("Original assets shouldn't have dependencies")
         if desc is self:
             raise InvalidAssetError("Asset can't depend on itself!")
         if key:
