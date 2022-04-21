@@ -17,7 +17,7 @@ def getActors(path):
                     keyvalue = word.split("=")
                     if (len(keyvalue) != 2):
                         print(line)
-                        assert(false)
+                        raise SyntaxError("T3D file shouldn't look like this")
                     currentActor[keyvalue[0]] = keyvalue[1]
                 continue
             if line == "End Actor\n" and not skip:

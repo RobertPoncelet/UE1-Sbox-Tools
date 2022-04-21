@@ -1,5 +1,6 @@
-import copy, glob, os, platform
+import copy, glob, os
 
+import constants
 from fbx import FbxType
 from vmat import PngType, VmatType
 from vmdl import PskType, TgaType, UClassType, VmdlType
@@ -9,11 +10,6 @@ VALID_ASSET_TYPES = [FbxType, PngType, VmatType, PskType, TgaType, VmdlType, UCl
                      VmapType]
 def filetype_to_asset_type(filetype):
     return next((at for at in VALID_ASSET_TYPES if at.file_extension == filetype), None)
-
-if platform.node().startswith("LAPTOP"):
-    REPO_DIR = os.path.realpath("D:/Google Drive/hp_resources")
-else:
-    REPO_DIR = os.path.realpath("F:/Google Drive/hp_resources")
 
 STAGES = ["original", "intermediate", "converted"]
 
@@ -36,6 +32,7 @@ CATEGORY_DICT = {
         "material": "materials",
         "model": "models",
         "map": "maps",
+        "flattened_textures": "textures_png_flattened_names"
     },
     "converted": {
         "material": "materials",
@@ -89,10 +86,10 @@ class AssetDescription:
     @staticmethod
     def from_path(path):
         path = os.path.realpath(path)
-        if not path.lower().startswith(REPO_DIR.lower()):
+        if not path.lower().startswith(constants.REPO_DIR.lower()):
             print(path)
             raise InvalidAssetError("Please use a path within the assets directory.")
-        path = path[len(REPO_DIR):]
+        path = path[len(constants.REPO_DIR):]
         parts = path.split(os.path.sep)
         if not parts[0]:
             parts = parts[1:]
@@ -153,7 +150,7 @@ class AssetDescription:
             else CATEGORY_DICT[self.stage][self.asset_type.category]
         # TODO: Why doesn't os.path.join work here???
         ret = os.path.sep.join([
-            REPO_DIR,
+            constants.REPO_DIR,
             root,
             self.game,
             category,
@@ -162,7 +159,7 @@ class AssetDescription:
         ])
         ret = os.path.realpath(ret)
         if relative_to_root:
-            ret = os.path.relpath(ret, start=os.path.join(REPO_DIR, root))
+            ret = os.path.relpath(ret, start=os.path.join(constants.REPO_DIR, root))
         return ret
 
     def sbox_path(self):
@@ -201,6 +198,8 @@ class AssetDescription:
         self.asset_type.resolve_dependencies(self, *args, **kwargs)
 
     def add_dependency_on(self, desc, key=None):
+        if desc is self:
+            raise InvalidAssetError("Asset can't depend on itself!")
         if key:
             self._deps_kwargs[key] = desc
         else:

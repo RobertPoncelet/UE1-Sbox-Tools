@@ -33,7 +33,8 @@ class BuildNode:
                 print("Making directory", directory)
                 os.makedirs(directory)
             self._asset.regenerate()
-        assert(os.path.isfile(self.filepath))
+        assert(os.path.isfile(self.filepath) and 
+            (not self.dependencies() or dep_mtime <= self.mtime))
         return self.mtime
 
     # Return a list of BuildNodes
