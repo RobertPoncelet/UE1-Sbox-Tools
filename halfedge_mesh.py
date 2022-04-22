@@ -1,25 +1,6 @@
 from csg.core import CSG
 from csg.geom import Polygon, Vector, Vertex
 
-class VmapVertex(Vertex):
-    def __init__(self, pos, uv=None, normal=None):
-        super().__init__(pos, normal)
-        self.uv = uv
-
-    def interpolate(self, other, t):
-        def lerp(a, b):
-            return t*b + (1-t)*a
-
-        ret = super().interpolate(other, t)
-        ret.uv[0] = lerp(self.uv[0], other.uv[0])
-        ret.uv[1] = lerp(self.uv[1], other.uv[1])
-        return ret
-
-    def clone(self):
-        ret = super().clone()
-        ret.uv = list(self.uv)
-        return ret
-
 def from_obj(obj_desc):
     vertices = []
     uvs = []
@@ -36,7 +17,7 @@ def from_obj(obj_desc):
                     uvs.append(uv)
                 elif parts[0] == "f":
                     indices = [int(p.split("/")[0]) for p in parts[1:]]
-                    # TODO: use VmapVertex to add UVs
+                    # TODO: use HalfEdgeVertex to add UVs
                     face = Polygon([vertices[i-1] for i in indices])
                     faces.append(face)
             except ZeroDivisionError:
@@ -51,8 +32,74 @@ def TEMP_const_vec_array(l):
     return [[float(i) for i in s.split()] for s in l]
 
 class HalfEdgeMesh:
-    def __init__(self, polygons):
-        self._polys = polygons
+    class HalfEdge:
+        def __init__(self, vertex, face, next_edge, opp_edge):
+            self.vertex = vertex
+            self.face = face
+            self.next_edge = next_edge
+            self.opp_edge = opp_edge
+
+    class HalfEdgeVertex(Vertex):
+        def __init__(self, pos, halfedge, uv, normal=None):
+            super().__init__(pos, normal)
+            self.halfedge = halfedge
+            self.uv = uv
+
+        def interpolate(self, other, t):
+            def lerp(a, b):
+                return t*b + (1-t)*a
+
+            ret = super().interpolate(other, t)
+            ret.uv[0] = lerp(self.uv[0], other.uv[0])
+            ret.uv[1] = lerp(self.uv[1], other.uv[1])
+
+        def clone(self):
+            ret = super().clone()
+            ret.uv = list(self.uv)
+            return ret
+
+    def __init__(self, polygons: list[Polygon]):
+        self._faces = polygons
+        self._vertices = []
+        self._halfedges = {}
+
+        # Make a list of ALL the vertices
+        # This could be done more concisely but whatever
+        for f in self._faces:
+            for v in f.vertices:
+                if v not in self._vertices:
+                    self._vertices.append(v)
+
+        def edge_key(v1, v2):
+            return self._vertices.index(v1), self._vertices.index(v2)
+
+        def face_edges(face):
+            for vi1, v1 in enumerate(face.vertices):
+                vi2 = (vi1 + 1) % len(face.vertices)
+                v2 = f.vertices[vi2]
+                yield vi1, v1, vi2, v2
+
+        # Create all the HalfEdges
+        for f in self._faces:
+            for _, v1, _, v2 in face_edges(f):
+                key = edge_key(v1, v2)
+                # Neighbour references are None for now, we'll update them later
+                self._halfedges[key] = HalfEdgeMesh.HalfEdge(v2, f, None, None)
+
+        # Link them up
+        for f in self._faces: # TODO: SO pseudocode doesn't have it, but surely this line is needed, right?
+            f.halfedge = self._halfedges[edge_key(f.vertices[0], f.vertices[1])]
+            for _, v1, vi2, v2 in face_edges(f):
+                this_key = edge_key(v1, v2)
+                v1.halfedge = self._halfedges[this_key]
+                vi3 = (vi2 + 1) % len(f.vertices)
+                v3 = f.vertices[vi3]
+                next_key = edge_key(v2, v3)
+                self._halfedges[this_key].next_edge = self._halfedges[next_key]
+                opp_key = edge_key(v2, v1)
+                if opp_key in self._halfedges:
+                    self._halfedges[this_key].opp_edge = self._halfedges[opp_key]
+                    self._halfedges[opp_key].opp_edge = self._halfedges[this_key]
 
     # TODO: everything
     def vertex_edge_indices(self):
