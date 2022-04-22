@@ -41,6 +41,7 @@ if __name__ == "__main__":
         return vmap_desc
 
     vmap_descs = [t3d_to_vmap_desc(p) for p in t3d_descs]
+    vmap_descs = vmap_descs[:1]
 
     print("="*20 + " RESOLVING DEPENDENCIES " + "="*20)
     for vmap_desc, t3d_desc in zip(vmap_descs, t3d_descs):
