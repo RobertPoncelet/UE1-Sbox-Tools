@@ -25,11 +25,14 @@ def from_obj(obj_desc):
 
     return HalfEdgeMesh(faces)
 
-def TEMP_const_int_array(l):
-        return [int(i) for i in l]
+def normal(face):
+    v1 = face.vertices[1].pos.minus(face.vertices[0].pos)
+    v2 = face.vertices[2].pos.minus(face.vertices[0].pos)
+    return v1.cross(v2).unit()
 
-def TEMP_const_vec_array(l):
-    return [[float(i) for i in s.split()] for s in l]
+def tangent(face):
+    v1 = face.vertices[1].pos.minus(face.vertices[0].pos)
+    return v1.unit()
 
 class HalfEdgeMesh:
     class HalfEdge:
@@ -56,19 +59,22 @@ class HalfEdgeMesh:
         def clone(self):
             ret = super().clone()
             ret.uv = list(self.uv)
+            ret.halfedge = self.halfedge
             return ret
 
-    def __init__(self, polygons: list[Polygon]):
+    def __init__(self, polygons: "list[Polygon]"):
         self._faces = polygons
         self._vertices = []
+        self._face_vertices = []
         self._halfedges = {}
 
         # Make a list of ALL the vertices
-        # This could be done more concisely but whatever
+        # This could be done more concisely but nested list comprehension syntax make brain hurty
         for f in self._faces:
             for v in f.vertices:
                 if v not in self._vertices:
                     self._vertices.append(v)
+                self._face_vertices.append(v)
 
         def edge_key(v1, v2):
             return self._vertices.index(v1), self._vertices.index(v2)
@@ -85,11 +91,15 @@ class HalfEdgeMesh:
                 key = edge_key(v1, v2)
                 # Neighbour references are None for now, we'll update them later
                 self._halfedges[key] = HalfEdgeMesh.HalfEdge(v2, f, None, None)
+                # We need to make the opposing HalfEdge even if it has no face
+                opp_key = edge_key(v2, v1)
+                if opp_key not in self._halfedges:
+                    self._halfedges[opp_key] = HalfEdgeMesh.HalfEdge(v1, None, None, None)
 
         # Link them up
         for f in self._faces: # TODO: SO pseudocode doesn't have it, but surely this line is needed, right?
             f.halfedge = self._halfedges[edge_key(f.vertices[0], f.vertices[1])]
-            for _, v1, vi2, v2 in face_edges(f):
+            for vi1, v1, vi2, v2 in face_edges(f):
                 this_key = edge_key(v1, v2)
                 v1.halfedge = self._halfedges[this_key]
                 vi3 = (vi2 + 1) % len(f.vertices)
@@ -97,378 +107,92 @@ class HalfEdgeMesh:
                 next_key = edge_key(v2, v3)
                 self._halfedges[this_key].next_edge = self._halfedges[next_key]
                 opp_key = edge_key(v2, v1)
-                if opp_key in self._halfedges:
-                    self._halfedges[this_key].opp_edge = self._halfedges[opp_key]
-                    self._halfedges[opp_key].opp_edge = self._halfedges[this_key]
+                self._halfedges[this_key].opp_edge = self._halfedges[opp_key]
+                self._halfedges[opp_key].opp_edge = self._halfedges[this_key]
+                # If the opposing edge has no face, we need to set its "next" here
+                if not self._halfedges[opp_key].face:
+                    if self._halfedges[opp_key].next_edge:
+                        print("My logic was wrong :(")
+                    vi0 = (vi1 - 1) % len(f.vertices)
+                    v0 = f.vertices[vi0]
+                    opp_next_key = edge_key(v1, v0)
+                    self._halfedges[opp_key].next_edge = self._halfedges[opp_next_key]
+                    new_vert = v1.clone()
+                    new_vert.halfedge = v1.halfedge # TODO: not needed when we're using our own Vertex subclass
+                    new_vert.flip()
+                    self._face_vertices.append(new_vert)
 
-    # TODO: everything
+
+        # Turn the HalfEdge dict into a list so we can use indices
+        self._halfedges = list(self._halfedges.values())
+
+        #print(self._faces)
+        #print(self._halfedges)
+        #print(self._vertices)
+        #print(self._face_vertices)
+
     def vertex_edge_indices(self):
-        return TEMP_const_int_array([
-            "0",
-            "1",
-            "22",
-            "15",
-            "8",
-            "14",
-            "6",
-            "18"
-        ])
+        return [self._halfedges.index(v.halfedge) for v in self._vertices]
+
     def vertex_data_indices(self):
-        return TEMP_const_int_array([
-            "0",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5",
-            "6",
-            "7"
-        ])
+        return [i for i in range(len(self._vertices))]
+
     def edge_vertex_indices(self):
-        return TEMP_const_int_array([
-            "1",
-            "0",
-            "5",
-            "1",
-            "2",
-            "5",
-            "1",
-            "6",
-            "3",
-            "4",
-            "6",
-            "3",
-            "7",
-            "6",
-            "3",
-            "5",
-            "7",
-            "4",
-            "0",
-            "7",
-            "2",
-            "0",
-            "4",
-            "2"
-        ])
+        return [self._vertices.index(e.vertex) for e in self._halfedges]
+
     def edge_opposite_indices(self):
-        return TEMP_const_int_array([
-            "1",
-            "0",
-            "3",
-            "2",
-            "5",
-            "4",
-            "7",
-            "6",
-            "9",
-            "8",
-            "11",
-            "10",
-            "13",
-            "12",
-            "15",
-            "14",
-            "17",
-            "16",
-            "19",
-            "18",
-            "21",
-            "20",
-            "23",
-            "22"
-        ])
+        return [self._halfedges.index(e.opp_edge) for e in self._halfedges]
+
     def edge_next_indices(self):
-        return TEMP_const_int_array([
-            "2",
-            "19",
-            "4",
-            "7",
-            "21",
-            "14",
-            "1",
-            "11",
-            "10",
-            "23",
-            "12",
-            "15",
-            "17",
-            "6",
-            "9",
-            "3",
-            "18",
-            "8",
-            "20",
-            "13",
-            "22",
-            "0",
-            "16",
-            "5"
-        ])
+        return [self._halfedges.index(e.next_edge) for e in self._halfedges]
+
     def edge_face_indices(self):
-        return TEMP_const_int_array([
-            "0",
-            "5",
-            "0",
-            "3",
-            "0",
-            "4",
-            "5",
-            "3",
-            "1",
-            "4",
-            "1",
-            "3",
-            "1",
-            "5",
-            "4",
-            "3",
-            "2",
-            "1",
-            "2",
-            "5",
-            "2",
-            "0",
-            "2",
-            "4"
-        ])
+        return [(self._faces.index(e.face) if e.face else -1) for e in self._halfedges]
+
     def edge_data_indices(self):
-        return TEMP_const_int_array([
-            "0",
-            "0",
-            "1",
-            "1",
-            "2",
-            "2",
-            "3",
-            "3",
-            "4",
-            "4",
-            "5",
-            "5",
-            "6",
-            "6",
-            "7",
-            "7",
-            "8",
-            "8",
-            "9",
-            "9",
-            "10",
-            "10",
-            "11",
-            "11"
-        ])
+        return [int(i/2) for i in range(len(self._halfedges))]
+
     def edge_vertex_data_indices(self):
-        return TEMP_const_int_array([
-            "4",
-            "1",
-            "12",
-            "2",
-            "21",
-            "3",
-            "13",
-            "20",
-            "15",
-            "5",
-            "18",
-            "6",
-            "17",
-            "7",
-            "19",
-            "16",
-            "23",
-            "9",
-            "14",
-            "10",
-            "0",
-            "11",
-            "22",
-            "8"
-        ])
+        return [self._face_vertices.index(e.vertex) for e in self._halfedges]
+
     def face_edge_indices(self):
-        return TEMP_const_int_array([
-            "21",
-            "17",
-            "22",
-            "15",
-            "14",
-            "6"
-        ])
+        return [self._halfedges.index(f.halfedge) for f in self._faces]
+
     def face_data_indices(self):
-        return TEMP_const_int_array([
-            "0",
-            "1",
-            "2",
-            "3",
-            "4",
-            "5"
-        ])
+        return [i for i in range(len(self._faces))]
 
     def materials(self):
         return ["hp1/materials/harrypotter/chocolatefrogtex0.vmat"]
 
     def positions(self):
-        return TEMP_const_vec_array([
-            "-32 -64 96",
-            "32 -64 96",
-            "-32 64 96",
-            "32 64 -96",
-            "-32 64 -96",
-            "32 64 96",
-            "32 -64 -96",
-            "-32 -64 -96"
-        ])
+        return [tuple(v.pos) for v in self._vertices]
 
     def uvs(self):
-        return TEMP_const_vec_array([
-            "0 -6",
-            "0 -6",
-            "-4 -6",
-            "2 -6",
-            "2 4",
-            "0 0",
-            "0 0",
-            "2 0",
-            "0 -6",
-            "0 0",
-            "0 0",
-            "0 4",
-            "2 0",
-            "2 -6",
-            "-4 -6",
-            "2 0",
-            "0 -6",
-            "0 4",
-            "2 4",	
-            "2 0",
-            "-4 0",
-            "0 0",
-            "0 0",
-            "-4 0"
-        ])
+        return [(0., 0.) for v in self._face_vertices] # TODO
+
     def normals(self):
-        return TEMP_const_vec_array([
-            "-1 0 0",
-            "0 -1 0",
-            "1 0 0",
-            "0 1 0",
-            "0 0 1",
-            "0 1 0",
-            "1 0 0",
-            "0 -1 0",
-            "0 1 0",
-            "0 0 -1",
-            "0 -1 0",
-            "0 0 1",
-            "0 0 1",
-            "0 -1 0",
-            "-1 0 0",
-            "0 0 -1",
-            "1 0 0",
-            "0 0 -1",
-            "0 0 -1",
-            "0 1 0",
-            "1 0 0",
-            "0 0 1",
-            "-1 0 0",
-            "-1 0 0"
-        ])
+        return [tuple(normal(v.halfedge.face)) for v in self._face_vertices]
+
     def tangents(self):
-        return TEMP_const_vec_array([
-            "0 1 0 1",
-            "1 0 0 -1",
-            "0 1 0 -1",
-            "1 -0 0 1",
-            "1 0 0 -1",
-            "1 -0 0 1",
-            "0 1 0 -1",
-            "1 0 0 -1",
-            "1 -0 0 1",
-            "1 0 0 1",
-            "1 0 0 -1",
-            "1 0 0 -1",
-            "1 0 0 -1",
-            "1 0 0 -1",
-            "0 1 0 1",
-            "1 0 0 1",
-            "0 1 0 -1",
-            "1 0 0 1",
-            "1 0 0 1",
-            "1 -0 0 1",
-            "0 1 0 -1",
-            "1 0 0 -1",
-            "0 1 0 1",
-            "0 1 0 1"
-        ])
+        return [list(tangent(v.halfedge.face)) + [1.] for v in self._face_vertices]
         
     def edge_flags(self):
-        return TEMP_const_int_array([
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0"
-        ])
+        return [0 for i in range(len(self._halfedges)//2)]
 
     def tex_scales(self):
-        return TEMP_const_vec_array([
-            "0.25 0.25",
-            "0.25 0.25",
-            "0.25 0.25",
-            "0.25 0.25",
-            "0.25 0.25",
-            "0.25 0.25"
-        ])
+        return [(0.25, 0.25) for f in self._faces] # TODO
+
     def tex_axesU(self):
-        return TEMP_const_vec_array([
-            "1 0 0 0",
-            "1 0 0 0",
-            "0 1 0 0",
-            "0 1 0 0",
-            "1 0 0 0",
-            "1 0 0 0"
-        ])
+        return [list(tangent(f)) + [0.] for f in self._faces]
+
     def tex_axesV(self):
-        return TEMP_const_vec_array([
-            "0 -1 0 0",
-            "0 -1 0 0",
-            "0 0 -1 0",
-            "0 0 -1 0",
-            "0 0 -1 0",
-            "0 0 -1 0"
-        ])
+        return [list(tangent(f).cross(normal(f))) + [0.] for f in self._faces]
+
     def material_indices(self):
-        return TEMP_const_int_array([
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0"
-        ])
+        return [0 for f in self._faces] # TODO
+
     def face_flags(self):
-        return TEMP_const_int_array([
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0"
-        ])
+        return [0 for f in self._faces]
+
     def lm_scale_biases(self):
-        return TEMP_const_int_array([
-            "0",
-            "0",
-            "0",
-            "0",
-            "0",
-            "0"
-        ])
+        return [0 for f in self._faces]
