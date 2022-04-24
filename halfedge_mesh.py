@@ -36,9 +36,10 @@ def tangent(face):
 
 class HalfEdgeMesh:
     class HalfEdge:
-        def __init__(self, vertex, face, next_edge, opp_edge):
+        def __init__(self, vertex, face, face_vertex, next_edge, opp_edge):
             self.vertex = vertex
             self.face = face
+            self.face_vertex = face_vertex
             self.next_edge = next_edge
             self.opp_edge = opp_edge
 
@@ -47,6 +48,7 @@ class HalfEdgeMesh:
             super().__init__(pos, normal)
             self.halfedge = halfedge
             self.uv = uv
+            self.is_dummy = False
 
         def interpolate(self, other, t):
             def lerp(a, b):
@@ -68,16 +70,24 @@ class HalfEdgeMesh:
         self._face_vertices = []
         self._halfedges = {}
 
-        # Make a list of ALL the vertices
-        # This could be done more concisely but nested list comprehension syntax make brain hurty
+        # Create all the vertices
         for f in self._faces:
+            f.face_vertices = []
             for v in f.vertices:
                 if v not in self._vertices:
                     self._vertices.append(v)
-                self._face_vertices.append(v)
+                fv = v.clone()
+                fv.is_dummy = False
+                fv.face = f
+                self._face_vertices.append(fv)
+                f.face_vertices.append(fv)
+
+        # Add their index within the vertex list, for optimisation purposes
+        for i, v in enumerate(self._vertices):
+            v.index = i
 
         def edge_key(v1, v2):
-            return self._vertices.index(v1), self._vertices.index(v2)
+            return v1.index, v2.index #self._vertices.index(v1), self._vertices.index(v2)
 
         def face_edges(face):
             for vi1, v1 in enumerate(face.vertices):
@@ -87,41 +97,61 @@ class HalfEdgeMesh:
 
         # Create all the HalfEdges
         for f in self._faces:
-            for _, v1, _, v2 in face_edges(f):
+            for _, v1, vi2, v2 in face_edges(f):
                 key = edge_key(v1, v2)
                 # Neighbour references are None for now, we'll update them later
-                self._halfedges[key] = HalfEdgeMesh.HalfEdge(v2, f, None, None)
-                # We need to make the opposing HalfEdge even if it has no face
+                self._halfedges[key] = HalfEdgeMesh.HalfEdge(v2, f, f.face_vertices[vi2], None, None)
                 opp_key = edge_key(v2, v1)
                 if opp_key not in self._halfedges:
-                    self._halfedges[opp_key] = HalfEdgeMesh.HalfEdge(v1, None, None, None)
+                    self._halfedges[opp_key] = HalfEdgeMesh.HalfEdge(v1, None, None, None, None)
+
+        for f in self._faces:
+            for _, v1, _, v2 in face_edges(f):
+            # We need to make the opposing HalfEdge even if it has no face
+                opp_key = edge_key(v2, v1)
+                if not self._halfedges[opp_key].face_vertex:
+                    dummy_vert = v1.clone()
+                    #dummy_vert.halfedge = v1.halfedge # TODO: not needed when we're using our own Vertex subclass
+                    dummy_vert.is_dummy = True
+                    dummy_vert.face = None
+                    dummy_vert.flip()
+                    self._face_vertices.append(dummy_vert)
+                    self._halfedges[opp_key].face_vertex = dummy_vert
 
         # Link them up
         for f in self._faces: # TODO: SO pseudocode doesn't have it, but surely this line is needed, right?
             f.halfedge = self._halfedges[edge_key(f.vertices[0], f.vertices[1])]
             for vi1, v1, vi2, v2 in face_edges(f):
-                this_key = edge_key(v1, v2)
-                v1.halfedge = self._halfedges[this_key]
                 vi3 = (vi2 + 1) % len(f.vertices)
                 v3 = f.vertices[vi3]
+                this_key = edge_key(v1, v2)
                 next_key = edge_key(v2, v3)
+                v1.halfedge = self._halfedges[this_key]
                 self._halfedges[this_key].next_edge = self._halfedges[next_key]
                 opp_key = edge_key(v2, v1)
+                v2.halfedge = self._halfedges[opp_key]
                 self._halfedges[this_key].opp_edge = self._halfedges[opp_key]
                 self._halfedges[opp_key].opp_edge = self._halfedges[this_key]
                 # If the opposing edge has no face, we need to set its "next" here
                 if not self._halfedges[opp_key].face:
-                    if self._halfedges[opp_key].next_edge:
-                        print("My logic was wrong :(")
+                    assert(not self._halfedges[opp_key].next_edge)
                     vi0 = (vi1 - 1) % len(f.vertices)
                     v0 = f.vertices[vi0]
                     opp_next_key = edge_key(v1, v0)
-                    self._halfedges[opp_key].next_edge = self._halfedges[opp_next_key]
-                    new_vert = v1.clone()
-                    new_vert.halfedge = v1.halfedge # TODO: not needed when we're using our own Vertex subclass
-                    new_vert.flip()
-                    self._face_vertices.append(new_vert)
-
+                    # Since this half-edge has no face, the next one must also have no face
+                    if not self._halfedges[opp_next_key].face:
+                        self._halfedges[opp_key].next_edge = self._halfedges[opp_next_key]
+                    else:
+                        # Time to brute-force it
+                        for v in self._vertices:
+                            opp_next_key = edge_key(v1, v)
+                            if opp_next_key not in self._halfedges or v is v1 or v is v2:
+                                continue
+                            if not self._halfedges[opp_next_key].face:
+                                self._halfedges[opp_key].next_edge = self._halfedges[opp_next_key]
+                                break
+                        if not self._halfedges[opp_key].next_edge:
+                            raise RuntimeError("Couldn't find next edge from half-edge {}!".format(opp_key))
 
         # Turn the HalfEdge dict into a list so we can use indices
         self._halfedges = list(self._halfedges.values())
@@ -153,7 +183,7 @@ class HalfEdgeMesh:
         return [int(i/2) for i in range(len(self._halfedges))]
 
     def edge_vertex_data_indices(self):
-        return [self._face_vertices.index(e.vertex) for e in self._halfedges]
+        return [self._face_vertices.index(e.face_vertex) for e in self._halfedges]
 
     def face_edge_indices(self):
         return [self._halfedges.index(f.halfedge) for f in self._faces]
@@ -171,10 +201,10 @@ class HalfEdgeMesh:
         return [(0., 0.) for v in self._face_vertices] # TODO
 
     def normals(self):
-        return [tuple(normal(v.halfedge.face)) for v in self._face_vertices]
+        return [(list(normal(fv.face)) if not fv.is_dummy else [0., 0., 0.]) for fv in self._face_vertices]
 
     def tangents(self):
-        return [list(tangent(v.halfedge.face)) + [1.] for v in self._face_vertices]
+        return [(list(tangent(fv.face)) + [1.] if not fv.is_dummy else [0., 0., 0., 0.,]) for fv in self._face_vertices]
         
     def edge_flags(self):
         return [0 for i in range(len(self._halfedges)//2)]
