@@ -7,21 +7,29 @@ def from_obj(obj_desc):
     faces = []
     with open(obj_desc.path()) as obj:
         for line in obj.readlines():
-            try:
-                parts = line.split()
-                if parts[0] == "v":
-                    pos = [float(i) for i in parts[1:4]]
-                    vertices.append(Vertex(Vector(pos)))
-                elif parts[0] == "vt":
-                    uv = [float(i) for i in parts[1:3]]
-                    uvs.append(uv)
-                elif parts[0] == "f":
-                    indices = [int(p.split("/")[0]) for p in parts[1:]]
-                    # TODO: use HalfEdgeVertex to add UVs
-                    face = Polygon([vertices[i-1] for i in indices])
-                    faces.append(face)
-            except ZeroDivisionError:
-                print("Bad face:", [vertices[i-1] for i in indices])
+            parts = line.split()
+            if parts[0] == "v":
+                pos = [float(i) for i in parts[1:4]]
+                vertices.append(Vertex(Vector(pos)))
+            elif parts[0] == "vt":
+                uv = [float(i) for i in parts[1:3]]
+                uvs.append(uv)
+            elif parts[0] == "f":
+                indices = [int(p.split("/")[0]) for p in parts[1:]]
+                # TODO: use HalfEdgeVertex to add UVs
+                vert_list = list(reversed([vertices[i-1] for i in indices]))
+                face = None
+                # Find an arrangement of the vertices so the first three aren't collinear
+                for i in range(len(vert_list)):
+                    try:
+                        face = Polygon(vert_list)
+                        break
+                    except ZeroDivisionError:
+                        v = vert_list.pop(-1)
+                        vert_list.insert(0, v)
+                if not face:
+                    raise ValueError("Bad face:", line, [vertices[i-1] for i in indices])
+                faces.append(face)
 
     return HalfEdgeMesh(faces)
 
