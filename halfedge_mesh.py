@@ -8,6 +8,8 @@ def from_obj(obj_desc):
     with open(obj_desc.path()) as obj:
         for line in obj.readlines():
             parts = line.split()
+            if not parts:
+                continue
             if parts[0] == "v":
                 pos = [float(i) for i in parts[1:4]]
                 vertices.append(Vertex(Vector(pos)))
@@ -20,7 +22,7 @@ def from_obj(obj_desc):
                 vert_list = list(reversed([vertices[i-1] for i in indices]))
                 face = None
                 # Find an arrangement of the vertices so the first three aren't collinear
-                for i in range(len(vert_list)):
+                for _ in range(len(vert_list)):
                     try:
                         face = Polygon(vert_list)
                         break
@@ -95,7 +97,7 @@ class HalfEdgeMesh:
             v.index = i
 
         def edge_key(v1, v2):
-            return v1.index, v2.index #self._vertices.index(v1), self._vertices.index(v2)
+            return v1.index, v2.index
 
         def face_edges(face):
             for vi1, v1 in enumerate(face.vertices):
@@ -142,7 +144,8 @@ class HalfEdgeMesh:
                 self._halfedges[opp_key].opp_edge = self._halfedges[this_key]
                 # If the opposing edge has no face, we need to set its "next" here
                 if not self._halfedges[opp_key].face:
-                    assert(not self._halfedges[opp_key].next_edge)
+                    if self._halfedges[opp_key].next_edge:
+                        raise ValueError("Unexpected next edge on half-edge {}!".format(opp_key))
                     vi0 = (vi1 - 1) % len(f.vertices)
                     v0 = f.vertices[vi0]
                     opp_next_key = edge_key(v1, v0)
@@ -159,10 +162,18 @@ class HalfEdgeMesh:
                                 self._halfedges[opp_key].next_edge = self._halfedges[opp_next_key]
                                 break
                         if not self._halfedges[opp_key].next_edge:
-                            raise RuntimeError("Couldn't find next edge from half-edge {}!".format(opp_key))
+                            raise ValueError("Couldn't find next edge from half-edge {}!".format(opp_key))
 
         # Turn the HalfEdge dict into a list so we can use indices
         self._halfedges = list(self._halfedges.values())
+
+        # Add all the indices for optimisation purposes
+        for i, f in enumerate(self._faces):
+            f.index = i
+        for i, fv in enumerate(self._face_vertices):
+            fv.index = i
+        for i, e in enumerate(self._halfedges):
+            e.index = i
 
         #print(self._faces)
         #print(self._halfedges)
@@ -170,31 +181,31 @@ class HalfEdgeMesh:
         #print(self._face_vertices)
 
     def vertex_edge_indices(self):
-        return [self._halfedges.index(v.halfedge) for v in self._vertices]
+        return [v.halfedge.index for v in self._vertices]
 
     def vertex_data_indices(self):
         return [i for i in range(len(self._vertices))]
 
     def edge_vertex_indices(self):
-        return [self._vertices.index(e.vertex) for e in self._halfedges]
+        return [e.vertex.index for e in self._halfedges]
 
     def edge_opposite_indices(self):
-        return [self._halfedges.index(e.opp_edge) for e in self._halfedges]
+        return [e.opp_edge.index for e in self._halfedges]
 
     def edge_next_indices(self):
-        return [self._halfedges.index(e.next_edge) for e in self._halfedges]
+        return [e.next_edge.index for e in self._halfedges]
 
     def edge_face_indices(self):
-        return [(self._faces.index(e.face) if e.face else -1) for e in self._halfedges]
+        return [(e.face.index if e.face else -1) for e in self._halfedges]
 
     def edge_data_indices(self):
         return [int(i/2) for i in range(len(self._halfedges))]
 
     def edge_vertex_data_indices(self):
-        return [self._face_vertices.index(e.face_vertex) for e in self._halfedges]
+        return [e.face_vertex.index for e in self._halfedges]
 
     def face_edge_indices(self):
-        return [self._halfedges.index(f.halfedge) for f in self._faces]
+        return [f.halfedge.index for f in self._faces]
 
     def face_data_indices(self):
         return [i for i in range(len(self._faces))]
@@ -234,3 +245,11 @@ class HalfEdgeMesh:
 
     def lm_scale_biases(self):
         return [0 for f in self._faces]
+
+if __name__ == "__main__":
+    import os, glob
+    objs = glob.glob("F:\Google Drive\hp_resources\intermediate_assets\hp1\maps\movers\*.obj")
+    #objs = glob.glob("triplane.obj")
+    for i, obj in enumerate(sorted(objs, key=lambda f: os.path.getsize(f))):
+        print(str(int((i/len(objs)) * 100.)) + "%", obj)
+        mesh = from_obj(obj)
