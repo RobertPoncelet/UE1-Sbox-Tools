@@ -65,7 +65,7 @@ class AssetDescription:
         name: str,
         asset_type: type):
 
-        if not stage or not game or subfolder is None or not name or not asset_type:
+        if not stage or not game or subfolder is None or name is None or not asset_type:
             raise InvalidAssetError("Please provide all AssetDescription parameters.")
 
         self.stage = stage

@@ -4,9 +4,11 @@ import multiprocessing as mp
 import asset, vmap
 from build_node import BuildNode
 
-def build_vmap(root_node, regen_vmap=False):
+def build_vmap(root_node, regen_vmap=False, regen_obj=False):
     if regen_vmap:
         vmap.VmapType.force_regen = True
+    if regen_obj:
+        vmap.ObjType.force_regen = True
     root_node.build()
 
 if __name__ == "__main__":
@@ -16,11 +18,10 @@ if __name__ == "__main__":
                         help="Glob specifying which T3D files to convert.")
     parser.add_argument("--regen-vmap", action="store_true",
                         help="Force regeneration of VMAP files.")
+    parser.add_argument("--regen-obj", action="store_true",
+                        help="Force regeneration of OBJ files.")
 
     args = parser.parse_args()
-
-    if args.regen_vmap:
-        vmap.VmapType.force_regen = True
 
     if args.t3ds:
         t3d_descs = [asset.AssetDescription.from_path(path)
@@ -49,7 +50,7 @@ if __name__ == "__main__":
 
     print("="*20 + " STARTING BUILD " + "="*20)
     with mp.Pool(processes=None) as pool:
-        mp_args = [(BuildNode(v), args.regen_vmap)
+        mp_args = [(BuildNode(v), args.regen_vmap, args.regen_obj)
             for v in vmap_descs]
         pool.starmap(build_vmap, mp_args)
 

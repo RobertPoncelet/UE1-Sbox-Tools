@@ -247,9 +247,11 @@ class HalfEdgeMesh:
         return [0 for f in self._faces]
 
 if __name__ == "__main__":
-    import os, glob
-    objs = glob.glob("F:\Google Drive\hp_resources\intermediate_assets\hp1\maps\movers\*.obj")
+    import os, glob, subprocess, constants, asset
+    objs = glob.glob("F:\Google Drive\hp_resources\intermediate_assets\hp1\maps\movers\Lev4_Sneak2.Mover55.obj")
     #objs = glob.glob("triplane.obj")
     for i, obj in enumerate(sorted(objs, key=lambda f: os.path.getsize(f))):
+        script_path = os.path.realpath("blender_clean_obj.py")
+        subprocess.run([constants.BLENDER_PATH,	"-b", "--python", script_path, "--", obj], capture_output=True)
         print(str(int((i/len(objs)) * 100.)) + "%", obj)
-        mesh = from_obj(obj)
+        mesh = from_obj(asset.AssetDescription.from_path(obj))

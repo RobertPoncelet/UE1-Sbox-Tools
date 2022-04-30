@@ -16,7 +16,7 @@ class FbxType:
     @staticmethod
     def regenerate(fbx_desc, psk_desc):
         script_path = os.path.realpath("blender_psk_to_fbx.py")
-        p1 = subprocess.run(
+        subprocess.run(
             [
                 constants.BLENDER_PATH,
                 "-b",

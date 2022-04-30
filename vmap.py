@@ -9,6 +9,7 @@ class T3dType:
 	category = "map"
 
 # Kind of a hack?
+# Remember to fix the AssetDescription parameters check when this is fixed
 class FlattenedTexturesType:
 	force_regen = False
 	file_extension = ""
@@ -32,16 +33,21 @@ class ObjType:
 			name="",
 			asset_type=FlattenedTexturesType
 		)
-		print(flattened_textures_dir.path())
 		subprocess.run([
 			constants.T3D_TO_OBJ_PATH,
 			"--post-scale",
-			constants.T3D_SCALE * constants.SCALE,
+			str(constants.T3D_SCALE * constants.SCALE),
 			t3d_desc.path(),
-			os.path.dirname(flattened_textures_dir.path())
+			flattened_textures_dir.path()
 		])
 		output_path = t3d_desc.path()[:-3] + ObjType.file_extension
+		if os.path.isfile(obj_desc.path()):
+			os.remove(obj_desc.path())
 		os.rename(output_path, obj_desc.path())
+
+		script_path = os.path.realpath("blender_clean_obj.py")
+		print("Starting Blender...")
+		subprocess.run([constants.BLENDER_PATH,	"-b", "--python", script_path, "--", obj_desc.path()])
 
 class VmapType:
 	force_regen = False
@@ -63,7 +69,7 @@ class VmapType:
 
 		def dmx_array(l):
 			array_type = type(l[0])
-			if array_type is list or array_type is tuple:
+			if issubclass(array_type, list) or issubclass(array_type, tuple):
 				length = len(l[0])
 				if length == 2:
 					array_type = dmx.Vector2
