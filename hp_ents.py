@@ -1,71 +1,8 @@
 import colorsys
-import constants
 import glob
 import hammer
+import t3d_parsing as t3d
 import os.path
-
-def getActors(path):
-    currentActor = {}
-    actors = []
-    skip = True
-    with open(path) as file:
-        for line in file:
-            if line.startswith("Begin Actor"):
-                skip = False
-                words = line.split()[2:]
-                for word in words:
-                    keyvalue = word.split("=")
-                    if (len(keyvalue) != 2):
-                        print(line)
-                        raise SyntaxError("T3D file shouldn't look like this")
-                    currentActor[keyvalue[0]] = keyvalue[1]
-                continue
-            if line == "End Actor\n" and not skip:
-                actors.append(currentActor)
-                currentActor = {}
-                skip = True
-                continue
-            if skip:
-                continue
-            key = line[:line.find("=")].strip()
-            value = line[line.find("=")+1:].strip()
-            currentActor[key] = value
-    return actors
-
-def transformKeyValues(kvString):
-    try:
-        kvString = kvString[1:-1] # Remove brackets
-        values = kvString.split(",")
-        values = { v.split("=")[0] : float(v.split("=")[1]) for v in values }
-    except IndexError:
-        values = {}
-    return values
-
-def locationToOrigin(location):
-    dims = transformKeyValues(location)
-    pos = [0., 0., 0.]
-    for d in dims:
-        if d == "X":
-            pos[0] = dims[d]
-        elif d == "Y":
-            pos[1] = dims[d]
-        elif d == "Z":
-            pos[2] = dims[d]
-    return "{} {} {}".format(pos[0]*constants.SCALE, -pos[1]*constants.SCALE, pos[2]*constants.SCALE) # Y is flipped
-
-def rotationToAngles(rotation, yawOffset=0.):
-    values = transformKeyValues(rotation)
-    angles = [0., 0., 0.]
-    factor = -360. / 65536. # Unreal rotations seem to be encoded as 16-bit ints
-    for key in values:
-        if key == "Pitch":
-            angles[0] = values[key] * factor * -1. - 180.
-        elif key == "Yaw":
-            angles[1] = values[key] * factor - 180. + yawOffset
-        elif key == "Roll":
-            angles[2] = values[key] * factor - 180.
-    # Hammer stores rotations as Y Z X
-    return "{} {} {}".format(angles[2], angles[1], angles[0])
 
 # Maps Actor classname (not Entity classname) to the default input/output for that Entity
 defaultIO = {
@@ -132,7 +69,7 @@ def isBuildable(actor):
 
 def buildEntities(path, classes, numExistingEnts):
     global actors 
-    actors = getActors(path)
+    actors = t3d.getActors(path)
     id = numExistingEnts
     mapname = os.path.splitext(os.path.basename(path))[0]
     for actor in actors:
@@ -166,10 +103,10 @@ def buildCommon(actor, ent):
     ent.addProperty("classname", actor["Class"] if "Class" in actor else "info_target")
     
     if "Location" in actor:
-        ent.addProperty("origin", locationToOrigin(actor["Location"]))
+        ent.addProperty("origin", t3d.locationToOrigin(actor["Location"]))
         
     if "Rotation" in actor:
-        ent.addProperty("angles", rotationToAngles(actor["Rotation"], -90.))
+        ent.addProperty("angles", t3d.rotationToAngles(actor["Rotation"], -90.))
     else:
         ent.addProperty("angles", "0 90 0")
         
@@ -309,7 +246,7 @@ def buildLight(actor, ent):
         ent.addProperty("outerconeangle", angle)
         # UE1 and Source 2 have different forward axes
         if "Rotation" in actor:
-            ent.addProperty("angles", rotationToAngles(actor["Rotation"], -90.))
+            ent.addProperty("angles", t3d.rotationToAngles(actor["Rotation"], -90.))
             
     return True
 
@@ -364,10 +301,10 @@ def buildMover(actor, ent):
             continue
         if key == "BaseRot" or "KeyRot" in key:
             outKey = key.lower().replace("(", "_").replace(")", "")
-            ent.addProperty(outKey, rotationToAngles(actor[key]))
+            ent.addProperty(outKey, t3d.rotationToAngles(actor[key]))
         if key == "BasePos" or "KeyPos" in key:
             outKey = key.lower().replace("(", "_").replace(")", "")
-            ent.addProperty(outKey, locationToOrigin(actor[key]))
+            ent.addProperty(outKey, t3d.locationToOrigin(actor[key]))
     return True
             
 def buildDiffindoBarrier(actor, ent):
@@ -492,7 +429,7 @@ def buildKnight(actor, ent):
         return False
     ent.addProperty("classname", "tp_ent_knight")
     if "Limits" in actor:
-        d = transformKeyValues(actor["Limits"])
+        d = t3d.transformKeyValues(actor["Limits"])
         if "Max" in d:
             ent.addProperty("maxBeans", int(d["Max"]))
         if "Min" in d:
