@@ -104,6 +104,7 @@ class AssetDescription:
             parts.insert(3, "")
 
         if len(parts) < 5:
+            print(parts)
             raise InvalidAssetError("Path does not contain enough information to create an asset.")
 
         # Find value given key

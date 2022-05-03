@@ -196,7 +196,7 @@ class VmapType:
 		e["physicsInteractsWith"] = ""
 		e["physicsInteractsExclude"] = ""
 
-		mesh = halfedge_mesh.from_obj(obj_desc)
+		mesh = halfedge_mesh.Mesh.from_obj(obj_desc)
 		e["meshData"] = VmapType.get_mesh_data(dm, mesh)
 
 		e["physicsSimplificationOverride"] = False

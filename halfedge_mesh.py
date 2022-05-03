@@ -1,40 +1,6 @@
 from csg.core import CSG
 from csg.geom import Polygon, Vector, Vertex
 
-def from_obj(obj_desc):
-    vertices = []
-    uvs = []
-    faces = []
-    with open(obj_desc.path()) as obj:
-        for line in obj.readlines():
-            parts = line.split()
-            if not parts:
-                continue
-            if parts[0] == "v":
-                pos = [float(i) for i in parts[1:4]]
-                vertices.append(Vertex(Vector(pos)))
-            elif parts[0] == "vt":
-                uv = [float(i) for i in parts[1:3]]
-                uvs.append(uv)
-            elif parts[0] == "f":
-                indices = [int(p.split("/")[0]) for p in parts[1:]]
-                # TODO: use HalfEdgeVertex to add UVs
-                vert_list = list(reversed([vertices[i-1] for i in indices]))
-                face = None
-                # Find an arrangement of the vertices so the first three aren't collinear
-                for _ in range(len(vert_list)):
-                    try:
-                        face = Polygon(vert_list)
-                        break
-                    except ZeroDivisionError:
-                        v = vert_list.pop(-1)
-                        vert_list.insert(0, v)
-                if not face:
-                    raise ValueError("Bad face:", line, [vertices[i-1] for i in indices])
-                faces.append(face)
-
-    return HalfEdgeMesh(faces)
-
 def normal(face):
     v1 = face.vertices[1].pos.minus(face.vertices[0].pos)
     v2 = face.vertices[2].pos.minus(face.vertices[0].pos)
@@ -44,7 +10,42 @@ def tangent(face):
     v1 = face.vertices[1].pos.minus(face.vertices[0].pos)
     return v1.unit()
 
-class HalfEdgeMesh:
+class Mesh:
+    @staticmethod
+    def from_obj(obj_desc):
+        vertices = []
+        uvs = []
+        faces = []
+        with open(obj_desc.path()) as obj:
+            for line in obj.readlines():
+                parts = line.split()
+                if not parts:
+                    continue
+                if parts[0] == "v":
+                    pos = [float(i) for i in parts[1:4]]
+                    vertices.append(Vertex(Vector(pos)))
+                elif parts[0] == "vt":
+                    uv = [float(i) for i in parts[1:3]]
+                    uvs.append(uv)
+                elif parts[0] == "f":
+                    indices = [int(p.split("/")[0]) for p in parts[1:]]
+                    # TODO: use HalfEdgeVertex to add UVs
+                    vert_list = list(reversed([vertices[i-1] for i in indices]))
+                    face = None
+                    # Find an arrangement of the vertices so the first three aren't collinear
+                    for _ in range(len(vert_list)):
+                        try:
+                            face = Polygon(vert_list)
+                            break
+                        except ZeroDivisionError:
+                            v = vert_list.pop(-1)
+                            vert_list.insert(0, v)
+                    if not face:
+                        raise ValueError("Bad face:", line, [vertices[i-1] for i in indices])
+                    faces.append(face)
+
+        return Mesh(faces)
+
     class HalfEdge:
         def __init__(self, vertex, face, face_vertex, next_edge, opp_edge):
             self.vertex = vertex
@@ -254,4 +255,4 @@ if __name__ == "__main__":
         script_path = os.path.realpath("blender_clean_obj.py")
         subprocess.run([constants.BLENDER_PATH,	"-b", "--python", script_path, "--", obj], capture_output=True)
         print(str(int((i/len(objs)) * 100.)) + "%", obj)
-        mesh = from_obj(asset.AssetDescription.from_path(obj))
+        mesh = Mesh.from_obj(asset.AssetDescription.from_path(obj))
