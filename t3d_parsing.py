@@ -2,28 +2,27 @@ import constants
 
 class Actor:
     def __init__(self, line):
-        assert(line.startswith("Begin Actor"))
+        if not line.startswith("Begin Actor"):
+            print(line)
+            raise SyntaxError("This doesn't look like an Actor begin line - parse error?")
         self.keyvalues = {}
         self.brush = None
         words = line.split()[2:]
-        for word in words:
-            keyvalue = word.split("=")
-            if (len(keyvalue) != 2):
-                print(line)
-                raise SyntaxError("T3D file shouldn't look like this")
-            self.keyvalues[keyvalue[0]] = keyvalue[1]
+        for key, value in [word.split("=") for word in words]:
+            self.keyvalues[key] = value
 
     def parseLine(self, line):
-        if line.startswith("End Actor"):
-            print("????")
-            return
         key = line[:line.find("=")].strip()
         value = line[line.find("=")+1:].strip()
         self.keyvalues[key] = value
 
     def addChild(self, child):
-        assert(not self.brush)
+        if self.brush:
+            raise SyntaxError("More than 1 Brush in this Actor!")
         self.brush = child
+
+    def __repr__(self):
+        return "Actor({}, {})".format(self.keyvalues, self.brush)
 
 class Brush:
     def __init__(self, line):
@@ -36,19 +35,47 @@ class Brush:
     def addChild(self, child):
         self.polygons.append(child)
 
+    def __repr__(self):
+        return "Brush({})".format(self.polygons)
+
+class Polygon:
+    def __init__(self, line):
+        words = line.split()[2:]
+        keyvalues = dict(word.split("=") for word in words)
+        self.item = keyvalues.get("Item")
+        self.texture = keyvalues.get("Texture")
+        self.flags = int(keyvalues.get("Flags", 0))
+        self.link = int(keyvalues.get("Link", 0))
+        self.vertices = []
+
+    def parseLine(self, line):
+        words = line.split()
+        key = words[0]
+        if key == "Pan":
+            self.pan = [int(s.split("=")[-1]) for s in words[1:]]
+        elif key in ["Origin", "Normal", "TextureU", "TextureV", "Vertex"]:
+            value = [float(s) for s in words[1].split(",")]
+            if key == "Vertex":
+                self.vertices.append(value)
+            else:
+                setattr(self, key.lower(), value)
+        else:
+            raise SyntaxError("Unexpected Polygon keyvalue {}={}!".format(key, words[1:]))
+
+    def addChild(self, child):
+        raise SyntaxError("Polygons shouldn't have any child objects!")
+
+    def __repr__(self):
+        return "Polygon with {} vertices".format(len(self.vertices))
+
 def getActors(path):
     stack = []
     actors = []
 
-    def parseBrushLine(line):
-        pass
-
-    def parsePolyLine(line):
-        pass
-
     parseDict = {
         "Actor": Actor,
-        "Brush": Brush
+        "Brush": Brush,
+        "Polygon": Polygon
     }
     
     with open(path) as file:
@@ -59,11 +86,8 @@ def getActors(path):
                 if currentItem in parseDict:
                     currentObject = parseDict[currentItem](line)
                     stack.append(currentObject)
-            
-            if stack:
-                stack[-1].parseLine(line)
 
-            if words and words[0] == "End":
+            elif words and words[0] == "End":
                 currentItem = words[1]
                 if currentItem in parseDict:
                     done = stack.pop()
@@ -72,13 +96,16 @@ def getActors(path):
                     else:
                         actors.append(done)
 
+            elif stack:
+                stack[-1].parseLine(line)
+
     return actors
 
 def transformKeyValues(kvString):
     try:
         kvString = kvString[1:-1] # Remove brackets
         values = kvString.split(",")
-        values = { v.split("=")[0] : float(v.split("=")[1]) for v in values }
+        values = {v.split("=")[0] : float(v.split("=")[1]) for v in values}
     except IndexError:
         values = {}
     return values
