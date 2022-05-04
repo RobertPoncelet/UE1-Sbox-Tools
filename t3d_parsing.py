@@ -1,31 +1,77 @@
 import constants
 
+class Actor:
+    def __init__(self, line):
+        assert(line.startswith("Begin Actor"))
+        self.keyvalues = {}
+        self.brush = None
+        words = line.split()[2:]
+        for word in words:
+            keyvalue = word.split("=")
+            if (len(keyvalue) != 2):
+                print(line)
+                raise SyntaxError("T3D file shouldn't look like this")
+            self.keyvalues[keyvalue[0]] = keyvalue[1]
+
+    def parseLine(self, line):
+        if line.startswith("End Actor"):
+            print("????")
+            return
+        key = line[:line.find("=")].strip()
+        value = line[line.find("=")+1:].strip()
+        self.keyvalues[key] = value
+
+    def addChild(self, child):
+        assert(not self.brush)
+        self.brush = child
+
+class Brush:
+    def __init__(self, line):
+        self.name = line.split("=")[-1]
+        self.polygons = []
+
+    def parseLine(self, line):
+        pass
+
+    def addChild(self, child):
+        self.polygons.append(child)
+
 def getActors(path):
-    currentActor = {}
+    stack = []
     actors = []
-    skip = True
+
+    def parseBrushLine(line):
+        pass
+
+    def parsePolyLine(line):
+        pass
+
+    parseDict = {
+        "Actor": Actor,
+        "Brush": Brush
+    }
+    
     with open(path) as file:
         for line in file:
-            if line.startswith("Begin Actor"):
-                skip = False
-                words = line.split()[2:]
-                for word in words:
-                    keyvalue = word.split("=")
-                    if (len(keyvalue) != 2):
-                        print(line)
-                        raise SyntaxError("T3D file shouldn't look like this")
-                    currentActor[keyvalue[0]] = keyvalue[1]
-                continue
-            if line == "End Actor\n" and not skip:
-                actors.append(currentActor)
-                currentActor = {}
-                skip = True
-                continue
-            if skip:
-                continue
-            key = line[:line.find("=")].strip()
-            value = line[line.find("=")+1:].strip()
-            currentActor[key] = value
+            words = line.split()
+            if words and words[0] == "Begin":
+                currentItem = words[1]
+                if currentItem in parseDict:
+                    currentObject = parseDict[currentItem](line)
+                    stack.append(currentObject)
+            
+            if stack:
+                stack[-1].parseLine(line)
+
+            if words and words[0] == "End":
+                currentItem = words[1]
+                if currentItem in parseDict:
+                    done = stack.pop()
+                    if stack:
+                        stack[-1].addChild(done)
+                    else:
+                        actors.append(done)
+
     return actors
 
 def transformKeyValues(kvString):
