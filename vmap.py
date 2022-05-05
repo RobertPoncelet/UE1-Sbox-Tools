@@ -64,7 +64,7 @@ class VmapType:
 		vmap_desc.add_dependency_on(obj_desc)
 
 	@staticmethod
-	def get_mesh_data(dm, mesh: halfedge_mesh.HalfEdgeMesh):
+	def get_mesh_data(dm, mesh: halfedge_mesh.Mesh):
 		data = dm.add_element("meshData", "CDmePolygonMesh")
 
 		def dmx_array(l):
@@ -154,10 +154,10 @@ class VmapType:
 	def regenerate(vmap_desc, t3d_desc, obj_desc):
 		dm = dmx.load("template_map.vmap")
 
-		globalClasses = []
-		hp_ents.buildEntities(t3d_desc.path(), globalClasses, 0)
-		for ent in globalClasses:
-			dm.root["world"]["children"].append(ent.toEntityElement(dm))
+		#globalClasses = []
+		#hp_ents.buildEntities(t3d_desc.path(), globalClasses, 0)
+		#for ent in globalClasses:
+		#	dm.root["world"]["children"].append(ent.toEntityElement(dm))
 
 		e = dm.add_element(None, "CMapMesh")
 
@@ -196,7 +196,7 @@ class VmapType:
 		e["physicsInteractsWith"] = ""
 		e["physicsInteractsExclude"] = ""
 
-		mesh = halfedge_mesh.Mesh.from_obj(obj_desc)
+		mesh = halfedge_mesh.Mesh.from_t3d(t3d_desc)
 		e["meshData"] = VmapType.get_mesh_data(dm, mesh)
 
 		e["physicsSimplificationOverride"] = False

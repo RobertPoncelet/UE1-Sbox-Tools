@@ -1,5 +1,6 @@
 from csg.core import CSG
 from csg.geom import Polygon, Vector, Vertex
+import t3d_parsing as t3d
 
 def normal(face):
     v1 = face.vertices[1].pos.minus(face.vertices[0].pos)
@@ -43,6 +44,17 @@ class Mesh:
                     if not face:
                         raise ValueError("Bad face:", line, [vertices[i-1] for i in indices])
                     faces.append(face)
+
+        return Mesh(faces)
+
+    # TODO: completely redo this so we parse entities and meshes all in one go
+    @staticmethod
+    def from_t3d(t3d_desc):
+        actors = t3d.getActors(t3d_desc.path())
+        brushes = [actor.brush for actor in actors if actor.brush and ("CsgOper" not in actor.keyvalues or actor.keyvalues["CsgOper"] == "CSG_Add")]
+        faces = []
+        for brush in brushes:
+            faces += [Polygon([Vertex(Vector(v)) for v in p.vertices]) for p in brush.polygons]
 
         return Mesh(faces)
 
@@ -111,10 +123,10 @@ class Mesh:
             for _, v1, vi2, v2 in face_edges(f):
                 key = edge_key(v1, v2)
                 # Neighbour references are None for now, we'll update them later
-                self._halfedges[key] = HalfEdgeMesh.HalfEdge(v2, f, f.face_vertices[vi2], None, None)
+                self._halfedges[key] = Mesh.HalfEdge(v2, f, f.face_vertices[vi2], None, None)
                 opp_key = edge_key(v2, v1)
                 if opp_key not in self._halfedges:
-                    self._halfedges[opp_key] = HalfEdgeMesh.HalfEdge(v1, None, None, None, None)
+                    self._halfedges[opp_key] = Mesh.HalfEdge(v1, None, None, None, None)
 
         for f in self._faces:
             for _, v1, _, v2 in face_edges(f):
