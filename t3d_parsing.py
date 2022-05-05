@@ -54,7 +54,7 @@ class Polygon:
         if key == "Pan":
             self.pan = [int(s.split("=")[-1]) for s in words[1:]]
         elif key in ["Origin", "Normal", "TextureU", "TextureV", "Vertex"]:
-            value = [float(s) for s in words[1].split(",")]
+            value = tuple(float(s) for s in words[1].split(","))
             if key == "Vertex":
                 self.vertices.append(value)
             else:

@@ -51,11 +51,20 @@ class Mesh:
     @staticmethod
     def from_t3d(t3d_desc):
         actors = t3d.getActors(t3d_desc.path())
-        brushes = [actor.brush for actor in actors if actor.brush and ("CsgOper" not in actor.keyvalues or actor.keyvalues["CsgOper"] == "CSG_Add")]
+        brushes = [next(actor.brush for actor in actors if actor.brush and len(actor.brush.polygons) == 12)]
         faces = []
+        vertices = {}
+        DETACHED_FACES = False
         for brush in brushes:
-            faces += [Polygon([Vertex(Vector(v)) for v in p.vertices]) for p in brush.polygons]
-
+            for poly in brush.polygons:
+                if DETACHED_FACES:
+                    faces.append(Polygon([Vertex(Vector(tuple(pos))) for pos in poly.vertices]))
+                else:
+                    for pos in poly.vertices:
+                        if pos not in vertices:
+                            vertices[pos] = Vertex(Vector(tuple(pos)))
+                    faces.append(Polygon([vertices[pos] for pos in poly.vertices]))
+        faces = [faces[0], faces[5]]
         return Mesh(faces)
 
     class HalfEdge:
