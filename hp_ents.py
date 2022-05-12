@@ -67,11 +67,10 @@ def isBuildable(actor):
         return False
     return True
 
-def buildEntities(_actors, classes, numExistingEnts):
+def buildEntities(_actors, classes, numExistingEnts, mapname):
     global actors # Kinda hacky but too lazy to change it right now
     actors = _actors
     id = numExistingEnts
-    mapname = os.path.splitext(os.path.basename(path))[0]
     for actor in actors:
         id += 1
         actor["_mapname"] = mapname
@@ -98,13 +97,20 @@ def buildEntity(actor, id):
             break
 
     if actor.brush:
-        ent.brush = halfedge_mesh.Mesh.from_t3d_brush(actor.brush)
+        try:
+            ent.brush = halfedge_mesh.Mesh.from_t3d_brush(actor.brush)
+        except ValueError:
+            print("fuck")
+            if not ent.properties["classname"]:
+                ent.properties["classname"] = "info_target"
     
     return ent
 
 def buildCommon(actor, ent):
     if actor["Class"] != "Brush":
         ent.addProperty("classname", actor["Class"])
+    else:
+        ent.addProperty("classname", None)
     
     if "Location" in actor:
         ent.addProperty("origin", t3d.locationToOrigin(actor["Location"]))

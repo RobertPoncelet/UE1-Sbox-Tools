@@ -51,7 +51,7 @@ class Mesh:
     def from_t3d_brush(brush):
         faces = []
         vertices = {}
-        DETACHED_FACES = False
+        DETACHED_FACES = True
         for poly in brush.polygons:
             if DETACHED_FACES:
                 faces.append(Polygon([Vertex(Vector(tuple(pos))) for pos in poly.vertices]))

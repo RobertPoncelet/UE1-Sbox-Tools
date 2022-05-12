@@ -33,7 +33,7 @@ class HammerClass:
 		self.classes.append(hClass)
 
 	def getTemplateElement(self, datamodel):
-		if self.className:
+		if self.properties["classname"]:
 			classType = "CMapEntity"
 		else:
 			classType = "CMapMesh"
@@ -215,10 +215,13 @@ class HammerClass:
 			e["connectionsData"].append(self.createDmxConnection(c, datamodel))
 
 		if self.brush:
-			if not self.className:
-				brushElement = e
+			if not self.properties["classname"]:
+				self.makeMesh(e, datamodel)
 			else:
-				brushElement = 
+				brushElement = datamodel.add_element(None, "CMapMesh")
+				self.makeMesh(brushElement, datamodel)
+				e["children"] = dmx.make_array(None, dmx.Element)
+				e["children"].append(brushElement)
 
 		return e
 		

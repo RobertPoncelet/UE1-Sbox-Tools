@@ -69,7 +69,8 @@ class VmapType:
 
 		globalClasses = []
 		actors = t3d_parsing.getActors(t3d_desc.path())
-		hp_ents.buildEntities(actors, globalClasses, 0)
+		mapname = t3d_desc.name
+		hp_ents.buildEntities(actors, globalClasses, 0, t3d_desc.name)
 		for ent in globalClasses:
 			dm.root["world"]["children"].append(ent.toDmxElement(dm))
 
