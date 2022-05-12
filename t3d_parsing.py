@@ -24,6 +24,18 @@ class Actor:
     def __repr__(self):
         return "Actor({}, {})".format(self.keyvalues, self.brush)
 
+    def __getitem__(self, key):
+        return self.keyvalues[key]
+
+    def __setitem__(self, key, value):
+        self.keyvalues[key] = value
+
+    def __contains__(self, value):
+        return value in self.keyvalues
+
+    def __iter__(self):
+        return self.keyvalues.__iter__()
+
 class Brush:
     def __init__(self, line):
         self.name = line.split("=")[-1]

@@ -39,7 +39,7 @@ def convertMapFileToDMX(path, out_path, test=False):
     globalClasses = []
     hp_ents.buildEntities(path, globalClasses, 0)
     for ent in globalClasses:
-        dm.root["world"]["children"].append(ent.toEntityElement(dm))
+        dm.root["world"]["children"].append(ent.toDmxElement(dm))
 
     if not test:
         dm.write(out_path, "keyvalues2", 4)

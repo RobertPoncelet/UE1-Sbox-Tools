@@ -2,6 +2,7 @@ import colorsys
 import glob
 import hammer
 import t3d_parsing as t3d
+import halfedge_mesh
 import os.path
 
 # Maps Actor classname (not Entity classname) to the default input/output for that Entity
@@ -33,7 +34,6 @@ def getModels():
 
 def isBuildable(actor):
     invalidClasses = [
-        "Brush", # We're importing level geometry in a different way
         "PlayerStart", 
         "ZoneInfo", 
         "HarryToGoyleTrigger", 
@@ -67,16 +67,16 @@ def isBuildable(actor):
         return False
     return True
 
-def buildEntities(path, classes, numExistingEnts):
-    global actors 
-    actors = t3d.getActors(path)
+def buildEntities(_actors, classes, numExistingEnts):
+    global actors # Kinda hacky but too lazy to change it right now
+    actors = _actors
     id = numExistingEnts
     mapname = os.path.splitext(os.path.basename(path))[0]
     for actor in actors:
         id += 1
         actor["_mapname"] = mapname
         newEnt = buildEntity(actor, id)
-        if newEnt is not None:
+        if newEnt:
             classes.append(newEnt)
 
 def buildEntity(actor, id):
@@ -96,11 +96,15 @@ def buildEntity(actor, id):
     for buildFunc in buildFuncs:
         if buildFunc(actor, ent):
             break
+
+    if actor.brush:
+        ent.brush = halfedge_mesh.Mesh.from_t3d_brush(actor.brush)
     
     return ent
 
 def buildCommon(actor, ent):
-    ent.addProperty("classname", actor["Class"] if "Class" in actor else "info_target")
+    if actor["Class"] != "Brush":
+        ent.addProperty("classname", actor["Class"])
     
     if "Location" in actor:
         ent.addProperty("origin", t3d.locationToOrigin(actor["Location"]))
