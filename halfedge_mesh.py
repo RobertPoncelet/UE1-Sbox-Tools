@@ -1,6 +1,19 @@
 from csg.core import CSG
 from csg.geom import Polygon, Vector, Vertex
-import t3d_parsing as t3d
+
+def t3d_brush_to_csg(brush):
+    faces = []
+    vertices = {}
+    DETACHED_FACES = False
+    for poly in brush.polygons:
+        if DETACHED_FACES:
+            faces.append(Polygon([Vertex(Vector(tuple(pos))) for pos in poly.vertices]))
+        else:
+            for pos in poly.vertices:
+                if pos not in vertices:
+                    vertices[pos] = Vertex(Vector(tuple(pos)))
+            faces.append(Polygon([vertices[pos] for pos in poly.vertices]))
+    return CSG.fromPolygons(faces)
 
 def normal(face):
     v1 = face.vertices[1].pos.minus(face.vertices[0].pos)
